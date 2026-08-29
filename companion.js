@@ -43,7 +43,7 @@
     // Immagine di riserva usata quando una creatura ha una imageMap ma manca
     // sia il file per la posa corrente sia quello per 'idle'. Percorso relativo
     // alla pagina che carica companion.js.
-    fallbackImage: 'companion/001.gif'
+    fallbackImage: 'companion/bulbasaur/idle.gif'
   };
 
   /* ----------------------------------------------------------
@@ -195,16 +195,17 @@
       }
     },
     {
-      // PLACEHOLDER: creatura di prova per il motore a immagine.
-      // Nessuna GIF per posa assegnata (spriteImages vuota): usa sempre
-      // il fallback globale cfg.fallbackImage (companion/001.gif).
-      // Sostituisci id/nome/rarita'/battute quando e' pronta davvero.
-      id: '001',
-      name: 'Sprite 001 (segnaposto)',
+      // Bulbasaur: prima creatura reale con GIF per posa (idle, happy).
+      // Sostituisci rarita'/battute quando vuoi affinarle.
+      id: 'bulbasaur',
+      name: 'Bulbasaur',
       rarity: 'comune',
       weight: 40,
-      startingEligible: false, // non assegnabile come starter casuale finche' e' un test
-      spriteImages: {},
+      startingEligible: true,
+      spriteImages: {
+        idle: 'companion/bulbasaur/idle.gif',
+        happy: 'companion/bulbasaur/happy.gif'
+      },
       lines: {
         idle:    ['...', 'in attesa delle animazioni vere'],
         happy:   ['contento!', 'gli piace essere coccolato'],
