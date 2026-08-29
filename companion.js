@@ -347,6 +347,12 @@
   }
 
   function currentMood() {
+    // sad/sleepy disattivati per ora: mancano gli sprite dedicati.
+    // Logica originale conservata sotto, pronta da riattivare quando
+    // avrai le GIF per quelle pose (basta togliere il return e il commento).
+    return 'idle';
+
+    /*
     var hour = new Date().getHours();
     var nightly = cfg.sleepyStartHour > cfg.sleepyEndHour
       ? (hour >= cfg.sleepyStartHour || hour < cfg.sleepyEndHour)
@@ -358,6 +364,7 @@
       if (hours > cfg.sadAfterHours) return 'sad';
     }
     return 'idle';
+    */
   }
 
   /* ----------------------------------------------------------
