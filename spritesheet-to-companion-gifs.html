@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spritesheet → GIF per movimento (companion)</title>
+<style>
+  :root{
+    --bg:#12151a;
+    --panel:#1b1f27;
+    --accent:#5ee6c8;
+    --accent-dim:#2f6b60;
+    --text:#e7ebef;
+    --text-dim:#9aa4b2;
+    --border:#2a2f3a;
+    --warn:#ffb454;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:24px 16px 64px;
+  }
+  main{ width:100%; max-width:560px; }
+  h1{ font-size:22px; margin:0 0 4px; }
+  p.sub{ color:var(--text-dim); margin:0 0 20px; font-size:14px; line-height:1.5; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:13px; color:var(--text-dim); margin-bottom:6px; }
+  input[type="file"], input[type="number"]{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    color:var(--text);
+    padding:10px;
+    font-size:14px;
+  }
+  button{
+    display:inline-block;
+    background:var(--accent);
+    color:#0a1512;
+    font-weight:600;
+    border:none;
+    border-radius:10px;
+    padding:12px 20px;
+    font-size:15px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button:disabled{ background:var(--accent-dim); color:#7b8a86; cursor:not-allowed; }
+  #status{ margin-top:16px; font-size:14px; color:var(--text-dim); min-height:20px; white-space:pre-wrap; }
+  #status.error{ color:#ff8a8a; }
+  #status.ok{ color:var(--accent); }
+  .note{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:14px;
+    font-size:13px;
+    color:var(--text-dim);
+    line-height:1.6;
+    margin-bottom:20px;
+  }
+  .note code{ color:var(--text); }
+  .note b{ color:var(--warn); }
+  #downloadRow{ margin-top:20px; display:none; }
+  #movList{ margin-top:16px; font-size:13px; color:var(--text-dim); }
+  #movList div{ padding:4px 0; border-bottom:1px solid var(--border); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Spritesheet → GIF per movimento</h1>
+  <p class="sub">Carica lo spritesheet (fotogrammi in fila, tutti della stessa dimensione) e il CSV dei movimenti. Genero una GIF animata per ciascun movimento, pronta per <code>imageMap</code> del companion.</p>
+
+  <div class="note">
+    Il CSV deve avere queste colonne, con intestazione nella prima riga:<br/>
+    <code>movimento,frame_inizio,frame_fine,durata_ms</code><br/>
+    <code>idle,1,4,150</code><br/>
+    <code>walk,5,12,100</code><br/>
+    <code>frame_inizio</code>/<code>frame_fine</code> sono le posizioni (a partire da 1) dei fotogrammi nella fila. <code>durata_ms</code> è il tempo di visualizzazione di ogni fotogramma nella GIF risultante.<br/><br/>
+    <b>Nota sulla trasparenza:</b> il formato GIF non supporta la trasparenza sfumata come il PNG, solo un colore "invisibile". Se lo sprite ha bordi sfumati/antialiasing potresti vedere un lieve alone magenta ai bordi.
+  </div>
+
+  <div class="field">
+    <label for="sheetInput">Spritesheet (PNG)</label>
+    <input type="file" id="sheetInput" accept="image/png" />
+  </div>
+
+  <div class="field">
+    <label for="frameCountInput">Numero totale di fotogrammi nello spritesheet</label>
+    <input type="number" id="frameCountInput" min="1" placeholder="es. 24" />
+  </div>
+
+  <div class="field">
+    <label for="csvInput">Spreadsheet movimenti (CSV)</label>
+    <input type="file" id="csvInput" accept=".csv,text/csv" />
+  </div>
+
+  <button id="generateBtn">Genera GIF</button>
+
+  <div id="status"></div>
+  <div id="movList"></div>
+
+  <div id="downloadRow">
+    <button id="downloadBtn">Scarica ZIP con tutte le GIF</button>
+  </div>
+</main>
+
+<script type="module">
+import Papa from 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/+esm';
+import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
+
+const GIF_JS_URL = 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js';
+const GIF_WORKER_URL = 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js';
+const CHROMA_KEY = 0xFF00FF; // magenta, usato come "colore trasparente" nella GIF
+
+const sheetInput = document.getElementById('sheetInput');
+const frameCountInput = document.getElementById('frameCountInput');
+const csvInput = document.getElementById('csvInput');
+const generateBtn = document.getElementById('generateBtn');
+const statusEl = document.getElementById('status');
+const movListEl = document.getElementById('movList');
+const downloadRow = document.getElementById('downloadRow');
+const downloadBtn = document.getElementById('downloadBtn');
+
+let sheetImage = null;
+let movimenti = [];
+let gifBlobsByName = {}; // nome -> Blob
+
+function setStatus(msg, type) {
+  statusEl.textContent = msg;
+  statusEl.className = type || '';
+}
+
+sheetInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    sheetImage = img;
+    setStatus(`Spritesheet caricato: ${img.width}×${img.height}px.`);
+  };
+  img.onerror = () => setStatus('Impossibile leggere il PNG.', 'error');
+  img.src = url;
+});
+
+csvInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      const righe = results.data;
+      const errori = [];
+      movimenti = righe.map((r, idx) => {
+        const nome = (r.movimento || '').trim();
+        const inizio = parseInt(r.frame_inizio, 10);
+        const fine = parseInt(r.frame_fine, 10);
+        const durata = parseInt(r.durata_ms, 10) || 120;
+        if (!nome) errori.push(`Riga ${idx + 2}: manca il nome del movimento.`);
+        if (isNaN(inizio) || isNaN(fine)) errori.push(`Riga ${idx + 2}: frame_inizio/frame_fine non validi.`);
+        return { nome, inizio, fine, durata };
+      });
+      if (errori.length) {
+        setStatus('Problemi nel CSV:\n' + errori.join('\n'), 'error');
+        movimenti = [];
+      } else {
+        setStatus(`${movimenti.length} movimenti letti dal CSV.`, 'ok');
+      }
+    },
+    error: (err) => setStatus('Errore nella lettura del CSV: ' + err.message, 'error'),
+  });
+});
+
+function loadGifWorkerBlobUrl() {
+  return fetch(GIF_WORKER_URL)
+    .then((r) => r.blob())
+    .then((blob) => URL.createObjectURL(blob));
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Impossibile caricare ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+function estraiFotogramma(frameWidth, frameHeight, indice1based) {
+  const canvas = document.createElement('canvas');
+  canvas.width = frameWidth;
+  canvas.height = frameHeight;
+  const ctx = canvas.getContext('2d');
+
+  // Riempi con il colore "chiave" al posto della trasparenza
+  ctx.fillStyle = '#FF00FF';
+  ctx.fillRect(0, 0, frameWidth, frameHeight);
+
+  const sx = (indice1based - 1) * frameWidth;
+  ctx.drawImage(sheetImage, sx, 0, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
+  return canvas;
+}
+
+function generaGifMovimento(frameWidth, frameHeight, movimento, workerBlobUrl) {
+  return new Promise((resolve, reject) => {
+    const gif = new window.GIF({
+      workers: 2,
+      quality: 10,
+      workerScript: workerBlobUrl,
+      width: frameWidth,
+      height: frameHeight,
+      transparent: CHROMA_KEY,
+      repeat: 0,
+    });
+
+    for (let i = movimento.inizio; i <= movimento.fine; i++) {
+      const canvas = estraiFotogramma(frameWidth, frameHeight, i);
+      gif.addFrame(canvas, { delay: movimento.durata });
+    }
+
+    gif.on('finished', (blob) => resolve(blob));
+    gif.on('abort', () => reject(new Error('Generazione GIF interrotta per ' + movimento.nome)));
+    gif.render();
+  });
+}
+
+generateBtn.addEventListener('click', async () => {
+  if (!sheetImage) { setStatus('Carica prima lo spritesheet PNG.', 'error'); return; }
+  const frameCount = parseInt(frameCountInput.value, 10);
+  if (!frameCount || frameCount < 1) { setStatus('Indica il numero totale di fotogrammi.', 'error'); return; }
+  if (!movimenti.length) { setStatus('Carica prima il CSV dei movimenti.', 'error'); return; }
+
+  const frameWidth = sheetImage.width / frameCount;
+  if (!Number.isInteger(frameWidth)) {
+    setStatus(`Attenzione: la larghezza dello spritesheet (${sheetImage.width}px) non è divisibile esattamente per ${frameCount} fotogrammi. Controlla il numero inserito.`, 'error');
+    return;
+  }
+  const frameHeight = sheetImage.height;
+
+  const fuoriRange = movimenti.filter(m => m.inizio < 1 || m.fine > frameCount || m.inizio > m.fine);
+  if (fuoriRange.length) {
+    setStatus('Movimenti con indici fuori range: ' + fuoriRange.map(m => m.nome).join(', '), 'error');
+    return;
+  }
+
+  generateBtn.disabled = true;
+  movListEl.innerHTML = '';
+  gifBlobsByName = {};
+  downloadRow.style.display = 'none';
+
+  try {
+    setStatus('Carico il motore di generazione GIF…');
+    await loadScript(GIF_JS_URL);
+    const workerBlobUrl = await loadGifWorkerBlobUrl();
+
+    for (let i = 0; i < movimenti.length; i++) {
+      const m = movimenti[i];
+      setStatus(`Genero la GIF per "${m.nome}" (${i + 1} di ${movimenti.length})…`);
+      const blob = await generaGifMovimento(frameWidth, frameHeight, m, workerBlobUrl);
+      gifBlobsByName[m.nome] = blob;
+
+      const row = document.createElement('div');
+      row.textContent = `${m.nome}: fotogrammi ${m.inizio}-${m.fine}, ${blob.size} byte`;
+      movListEl.appendChild(row);
+    }
+
+    setStatus(`Fatto: ${movimenti.length} GIF generate.`, 'ok');
+    downloadRow.style.display = 'block';
+  } catch (err) {
+    console.error(err);
+    setStatus('Errore durante la generazione: ' + err.message, 'error');
+  } finally {
+    generateBtn.disabled = false;
+  }
+});
+
+downloadBtn.addEventListener('click', async () => {
+  downloadBtn.disabled = true;
+  setStatus('Preparo lo ZIP…');
+  try {
+    const zip = new JSZip();
+    for (const [nome, blob] of Object.entries(gifBlobsByName)) {
+      zip.file(`${nome}.gif`, blob);
+    }
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'companion_movimenti.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setStatus('ZIP scaricato.', 'ok');
+  } catch (err) {
+    console.error(err);
+    setStatus('Errore durante la creazione dello ZIP: ' + err.message, 'error');
+  } finally {
+    downloadBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
