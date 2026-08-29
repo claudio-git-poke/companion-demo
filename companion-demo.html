@@ -98,6 +98,17 @@
     font-size: 11px;
     white-space: pre-wrap;
   }
+
+  .dots {
+    font-size: 20px;
+    letter-spacing: 0.14em;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+
+  .streak-line { margin-bottom: 4px; }
+  .streak-line b { font-weight: 700; }
+  .streak-note { opacity: 0.65; }
 </style>
 </head>
 <body>
@@ -109,6 +120,20 @@
   <section>
     <h2>Stato</h2>
     <div id="stato">—</div>
+  </section>
+
+  <section>
+    <h2>Coccole di oggi</h2>
+    <div class="dots" id="dots">○○○○○</div>
+    <div class="streak-line" id="streak-line">—</div>
+    <div class="streak-line streak-note" id="streak-note">—</div>
+    <div style="margin-top:12px">
+      <button class="act" data-do="pet">Coccola</button>
+      <button class="act" data-do="clear-cooldown">Togli la ricarica</button>
+      <button class="act" data-do="almost">Portami a 4 su 5</button>
+      <button class="act" data-do="streak6">Streak a 6 (chiusa ieri)</button>
+      <button class="act" data-do="break">Spezza la streak</button>
+    </div>
   </section>
 
   <section>
@@ -164,6 +189,9 @@
   var logEl = document.getElementById('log');
   var statoEl = document.getElementById('stato');
   var rosterEl = document.getElementById('roster');
+  var dotsEl = document.getElementById('dots');
+  var streakLineEl = document.getElementById('streak-line');
+  var streakNoteEl = document.getElementById('streak-note');
   var stageTest = document.getElementById('stage-test');
   var mounted = null;
   var stageGif = document.getElementById('stage-gif');
@@ -171,6 +199,40 @@
 
   function log(line) {
     logEl.textContent = new Date().toLocaleTimeString() + '  ' + line + '\n' + logEl.textContent;
+  }
+
+  function formatWait(ms) {
+    var min = Math.ceil(ms / 60000);
+    if (min < 1) return 'meno di un minuto';
+    if (min < 60) return min + ' min';
+    var h = Math.floor(min / 60);
+    var m = min % 60;
+    return h + ' h' + (m ? ' ' + m + ' min' : '');
+  }
+
+  function refreshStreak() {
+    var s = Companion.getStreak();
+    dotsEl.textContent = s.progress;
+
+    if (s.completedToday) {
+      streakLineEl.innerHTML = 'Giornata completa · streak <b>' + s.streak +
+        '</b> · guadagnate ' + s.dustToday + ' di polvere.';
+    } else {
+      streakLineEl.innerHTML = 'Mancano <b>' + s.remaining + '</b> coccole su ' + s.goal +
+        ' · streak attuale <b>' + s.streak + '</b>.';
+    }
+
+    if (s.completedToday) {
+      streakNoteEl.textContent = s.daysToWeeklyBonus === 0
+        ? 'Bonus settimanale riscosso oggi.'
+        : 'Bonus settimanale fra ' + s.daysToWeeklyBonus + ' giorni.';
+    } else if (s.cooling) {
+      streakNoteEl.textContent = 'In ricarica: la prossima coccola valida fra ' +
+        formatWait(s.nextPetInMs) + '. Completando oggi prendi ' + s.dustIfCompleted + ' di polvere.';
+    } else {
+      streakNoteEl.textContent = 'Pronto per una coccola valida. Completando oggi prendi ' +
+        s.dustIfCompleted + ' di polvere.';
+    }
   }
 
   function refresh() {
@@ -192,9 +254,12 @@
       });
       rosterEl.appendChild(b);
     });
+
+    refreshStreak();
   }
 
-  ['assigned', 'pet', 'reward', 'levelup', 'unlocked', 'changed'].forEach(function (name) {
+  ['assigned', 'pet', 'reward', 'levelup', 'unlocked', 'changed',
+   'streak', 'streakbroken', 'bonus'].forEach(function (name) {
     document.addEventListener('companion:' + name, function (e) {
       log('companion:' + name + '  ' + JSON.stringify(e.detail));
       refresh();
@@ -204,6 +269,12 @@
   document.addEventListener('click', function (e) {
     var act = e.target.getAttribute && e.target.getAttribute('data-do');
     if (!act) return;
+
+    if (act === 'pet') Companion.pet();
+    if (act === 'clear-cooldown') { Companion.dev.clearCooldown(); log('ricarica azzerata'); }
+    if (act === 'almost') { Companion.dev.setDailyPets(4); log('coccole di oggi: 4 su 5'); }
+    if (act === 'streak6') { Companion.dev.setStreak(6); log('streak a 6, chiusa ieri: completando oggi arrivi a 7'); }
+    if (act === 'break') { Companion.dev.breakStreak(); log('streak spezzata'); }
 
     if (act === 'drop') {
       var d = Companion.rollDrop(1);
@@ -232,6 +303,9 @@
     }
     refresh();
   });
+
+  // Il conto alla rovescia della ricarica si aggiorna da solo.
+  setInterval(refreshStreak, 30000);
 
   refresh();
 })();
