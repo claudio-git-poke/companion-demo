@@ -137,6 +137,38 @@
   </section>
 
   <section>
+    <h2>Streak avanzata</h2>
+    <div class="streak-line" id="streak-extra">—</div>
+    <div style="margin-top:12px">
+      <button class="act" data-do="skip-day">Salta un giorno (usa il gettone)</button>
+      <button class="act" data-do="add-token">Dammi un gettone</button>
+      <button class="act" data-do="milestone">Portami a 1 giorno dal traguardo</button>
+      <button class="act" data-do="away">Torna dopo 3 giorni</button>
+    </div>
+    <div style="margin-top:8px">
+      <button class="act" data-do="reminder-on">Attiva promemoria</button>
+      <button class="act" data-do="reminder-off">Disattiva</button>
+      <button class="act" data-do="reminder-now">Fallo scattare ora</button>
+      <button class="act" data-do="nudges">Suggerimenti dai dati veri</button>
+      <button class="act" data-do="stats">Statistiche nel registro</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Nome e comparsa</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <input id="nickname" type="text" maxlength="16" placeholder="nomignolo"
+             style="font:inherit;padding:8px 10px;border:0;background:rgba(0,0,0,0.06);color:inherit;min-width:160px">
+      <button class="act" data-do="rename" style="margin:0">Dai il nome</button>
+      <button class="act" data-do="rename-clear" style="margin:0">Torna al nome originale</button>
+    </div>
+    <div style="margin-top:12px">
+      <button class="act" data-do="appear">Rifai la comparsa a sfera</button>
+      <button class="act" data-do="flash">Prova il lampo (leggendario)</button>
+    </div>
+  </section>
+
+  <section>
     <h2>Widget</h2>
     <p class="sub" style="margin:0 0 12px">
       Il companion si puo' togliere dalla schermata con la crocetta accanto a lui:
@@ -232,6 +264,13 @@
     var s = Companion.getStreak();
     dotsEl.textContent = s.progress;
 
+    var extra = document.getElementById('streak-extra');
+    if (extra) {
+      extra.innerHTML = 'Gettoni di recupero: <b>' + s.tokens + '</b> su ' + s.tokensMax +
+        ' · prossimo traguardo: <b>' + (s.nextMilestone ? s.nextMilestone + ' giorni' : 'nessuno') +
+        '</b> · streak piu\' lunga: <b>' + Companion.getStats().longestStreak + '</b>';
+    }
+
     if (s.completedToday) {
       streakLineEl.innerHTML = 'Giornata completa · streak <b>' + s.streak +
         '</b> · guadagnate ' + s.dustToday + ' di polvere.';
@@ -256,7 +295,8 @@
   function refresh() {
     var a = Companion.getActive();
     statoEl.textContent =
-      a.name + ' · ' + a.rarity + ' · livello affetto ' + a.level +
+      a.displayName + (a.nickname ? ' (' + a.name + ')' : '') +
+      ' · ' + a.rarity + ' · livello affetto ' + a.level +
       ' · ' + a.xp + ' punti · ' + a.pets + ' coccole · umore: ' + a.mood;
 
     rosterEl.innerHTML = '';
@@ -264,7 +304,7 @@
       var b = document.createElement('button');
       b.className = 'slot' + (c.active ? ' active' : '');
       b.disabled = !c.owned;
-      b.innerHTML = '<b>' + (c.owned ? c.name : '???') + '</b>' +
+      b.innerHTML = '<b>' + (c.owned ? c.displayName : '???') + '</b>' +
                     '<span>' + c.rarity + (c.owned ? ' · liv. ' + c.level : ' · da trovare') + '</span>';
       b.addEventListener('click', function () {
         Companion.setActive(c.id);
@@ -291,7 +331,9 @@
   }
 
   ['assigned', 'pet', 'reward', 'levelup', 'unlocked', 'changed',
-   'streak', 'streakbroken', 'bonus', 'visibility', 'synced'].forEach(function (name) {
+   'streak', 'streakbroken', 'bonus', 'visibility', 'synced',
+   'renamed', 'appeared', 'milestone', 'token', 'recovered',
+   'welcomeback', 'reminder', 'nudge', 'nudgeaction'].forEach(function (name) {
     document.addEventListener('companion:' + name, function (e) {
       log('companion:' + name + '  ' + JSON.stringify(e.detail));
       refresh();
@@ -307,6 +349,38 @@
     if (act === 'almost') { Companion.dev.setDailyPets(4); log('coccole di oggi: 4 su 5'); }
     if (act === 'streak6') { Companion.dev.setStreak(6); log('streak a 6, chiusa ieri: completando oggi arrivi a 7'); }
     if (act === 'break') { Companion.dev.breakStreak(); log('streak spezzata'); }
+    if (act === 'skip-day') { Companion.dev.skipDay(); log('ultima giornata chiusa: l\'altro ieri'); }
+    if (act === 'add-token') { Companion.dev.setTokens(Companion.getStreak().tokens + 1); log('gettoni: ' + Companion.getStreak().tokens); }
+    if (act === 'milestone') {
+      var next = Companion.getStreak().nextMilestone;
+      if (next) { Companion.dev.setStreak(next - 1); Companion.dev.setDailyPets(4); log('streak a ' + (next - 1) + ': completa la giornata per il traguardo dei ' + next + ' giorni'); }
+      else log('nessun traguardo davanti');
+    }
+    if (act === 'away') { Companion.dev.awayDays(3); log('assenza di 3 giorni simulata'); }
+    if (act === 'reminder-on') { Companion.enableReminder(); log('promemoria attivo alle ' + Companion.getReminder().hour + ':00'); }
+    if (act === 'reminder-off') { Companion.disableReminder(); log('promemoria disattivato'); }
+    if (act === 'reminder-now') Companion.dev.fireReminder();
+    if (act === 'nudges') {
+      Companion.setNudges([
+        { id: 'prezzi', text: 'una carta della tua lista e\' scesa del 12%' },
+        { id: 'doppioni', text: 'hai 14 doppioni da convertire' },
+        { id: 'set', text: 'ti manca una carta sola per chiudere il set' }
+      ]);
+      log('suggerimenti veri attivi: clicca la nuvoletta quando compaiono');
+    }
+    if (act === 'stats') log('statistiche: ' + JSON.stringify(Companion.getStats()));
+    if (act === 'rename') {
+      var nick = document.getElementById('nickname').value;
+      Companion.setNickname(Companion.getActive().id, nick);
+      log('nomignolo: ' + (nick || '(vuoto)'));
+    }
+    if (act === 'rename-clear') {
+      Companion.setNickname(Companion.getActive().id, '');
+      document.getElementById('nickname').value = '';
+      log('nomignolo rimosso');
+    }
+    if (act === 'appear') Companion.appear();
+    if (act === 'flash') Companion.unlock('crepuscolo');
     if (act === 'hide-widget') { Companion.hideWidget(); log('companion tolto dalla schermata'); }
     if (act === 'show-widget') { Companion.showWidget(); log('companion rimesso in schermata'); }
     if (act === 'tokens-demo') { useDemoTokens(); log('oggetti segnaposto attivati'); }

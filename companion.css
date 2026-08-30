@@ -306,9 +306,152 @@
      0  6px 0 0 rgba(0, 0, 0, 0.18);
 }
 
+/* Suggerimento cliccabile: porta l'utente dove serve. */
+.cmp-bubble.is-actionable {
+  pointer-events: auto;
+  cursor: pointer;
+  background: #fffaf0;
+  box-shadow:
+     0 -3px 0 0 var(--cmp-ink),
+     0  3px 0 0 var(--cmp-ink),
+    -3px 0 0 0 var(--cmp-ink),
+     3px 0 0 0 var(--cmp-ink),
+     0  6px 0 0 rgba(0, 0, 0, 0.18),
+     0  0  0 3px #ffc53d;
+}
+
 .cmp-bubble.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* --- comparsa a sfera --- */
+
+/* Durante la comparsa la creatura resta invisibile: c'e' solo la sfera. */
+.cmp-widget.is-appearing .cmp-canvas,
+.cmp-widget.is-appearing .cmp-sprite-img {
+  visibility: hidden;
+}
+
+.cmp-widget.is-appearing .cmp-shadow {
+  transform: scaleX(0.7);
+  opacity: 0.16;
+}
+
+.cmp-widget.is-revealed .cmp-stage {
+  animation: cmp-reveal 560ms steps(6, end);
+}
+
+@keyframes cmp-reveal {
+  0%   { transform: scale(0.2, 0.2); }
+  40%  { transform: scale(1.18, 0.9); }
+  70%  { transform: scale(0.94, 1.06); }
+  100% { transform: scale(1, 1); }
+}
+
+/* La sfera: disegno provvisorio, sostituibile con ballImage.
+   Le proporzioni seguono lo sprite, quindi resta allineata a ogni scala. */
+.cmp-ball {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: 44%;
+  aspect-ratio: 1 / 1;
+  margin-left: -22%;
+  z-index: 2;
+  border-radius: 50%;
+  transform-origin: 50% 100%;
+
+  background:
+    linear-gradient(to bottom,
+      #e2483f 0%, #e2483f 44%,
+      #241d16 44%, #241d16 56%,
+      #f4efe4 56%, #f4efe4 100%);
+  box-shadow: inset 0 0 0 2px #241d16;
+  image-rendering: pixelated;
+}
+
+.cmp-ball::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26%;
+  height: 26%;
+  margin: -13% 0 0 -13%;
+  border-radius: 50%;
+  background: #f4efe4;
+  box-shadow: inset 0 0 0 2px #241d16;
+}
+
+/* Con una tua immagine sparisce tutto il disegno qui sopra. */
+.cmp-ball.is-image {
+  background: center / contain no-repeat;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.cmp-ball.is-image::after { display: none; }
+
+.cmp-ball.is-drop {
+  animation: cmp-ball-drop 640ms cubic-bezier(0.5, 0, 0.75, 0.2);
+}
+
+.cmp-ball.is-wobble {
+  animation: cmp-ball-wobble 2100ms ease-in-out;
+}
+
+.cmp-ball.is-open {
+  animation: cmp-ball-open 320ms ease-out forwards;
+}
+
+@keyframes cmp-ball-drop {
+  0%   { transform: translateY(-220px) scale(1); opacity: 0; }
+  10%  { opacity: 1; }
+  60%  { transform: translateY(0) scale(1.06, 0.9); }
+  75%  { transform: translateY(-14px) scale(0.97, 1.04); }
+  90%  { transform: translateY(0) scale(1.04, 0.94); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+/* Tre tremolii con una pausa tra l'uno e l'altro. */
+@keyframes cmp-ball-wobble {
+  0%, 8%    { transform: rotate(0deg); }
+  12%       { transform: rotate(-13deg); }
+  16%       { transform: rotate(11deg); }
+  20%       { transform: rotate(-6deg); }
+  24%, 40%  { transform: rotate(0deg); }
+  44%       { transform: rotate(-13deg); }
+  48%       { transform: rotate(11deg); }
+  52%       { transform: rotate(-6deg); }
+  56%, 72%  { transform: rotate(0deg); }
+  76%       { transform: rotate(-13deg); }
+  80%       { transform: rotate(11deg); }
+  84%       { transform: rotate(-6deg); }
+  88%, 100% { transform: rotate(0deg); }
+}
+
+@keyframes cmp-ball-open {
+  0%   { transform: scale(1); opacity: 1; }
+  40%  { transform: scale(1.35); opacity: 0.9; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+/* --- lampo a schermo intero --- */
+
+.cmp-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: #fff;
+  animation: cmp-flash 420ms ease-out forwards;
+}
+
+@keyframes cmp-flash {
+  0%   { opacity: 0; }
+  18%  { opacity: 0.82; }
+  100% { opacity: 0; }
 }
 
 /* --- particelle --- */
@@ -329,13 +472,40 @@
   animation: cmp-float 1200ms ease-out forwards;
 }
 
+/* Ogni evento ha la sua particella. */
 .cmp-particle--heart { color: #e8546a; }
 .cmp-particle--level { color: #ffc53d; font-size: 15px; }
+
+/* polvere magica: granelli piccoli e lenti */
+.cmp-particle--dust {
+  color: #f2c14e;
+  font-size: 9px;
+  animation-duration: 1600ms;
+}
+
+/* giornata completata: quadratini pixelati, non tondi */
+.cmp-particle--confetti {
+  width: 4px;
+  height: 4px;
+  animation-name: cmp-confetti;
+  animation-duration: 1500ms;
+}
+
+.cmp-confetti-1 { background: #e8546a; }
+.cmp-confetti-2 { background: #ffc53d; }
+.cmp-confetti-3 { background: #5fbf6a; }
+.cmp-confetti-4 { background: #59b6e8; }
 
 @keyframes cmp-float {
   0%   { opacity: 0; transform: translateY(0) scale(0.6); }
   20%  { opacity: 1; transform: translateY(-8px) scale(1); }
   100% { opacity: 0; transform: translateY(-46px) scale(0.9); }
+}
+
+@keyframes cmp-confetti {
+  0%   { opacity: 0; transform: translateY(0) rotate(0deg); }
+  15%  { opacity: 1; transform: translateY(-26px) rotate(90deg); }
+  100% { opacity: 0; transform: translateY(24px) rotate(320deg); }
 }
 
 /* --- schermi piccoli --- */
@@ -355,7 +525,11 @@
   .cmp-widget.is-hop .cmp-stage,
   .cmp-widget.is-hop .cmp-shadow,
   .cmp-widget.is-done .cmp-stage,
+  .cmp-widget.is-revealed .cmp-stage,
+  .cmp-ball,
   .cmp-token.is-new { animation: none; }
+
+  .cmp-flash { display: none; }
 
   .cmp-button { transition: none; }
   .cmp-shadow { transition: none; }

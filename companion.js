@@ -39,6 +39,39 @@
     petTokenImages: [],
     petTokenSize: 16,         // lato in px di ogni oggetto
 
+    // --- Gettone di recupero ---
+    // Copre un giorno saltato: se ne guadagna uno ogni recoveryTokenEvery
+    // giorni di streak, fino a recoveryTokenMax. Copre un solo giorno per
+    // volta: due giorni di fila senza coccole azzerano comunque la streak.
+    recoveryTokens: true,
+    recoveryTokenEvery: 5,
+    recoveryTokenMax: 2,
+
+    // --- Traguardi di streak ---
+    // Una tantum, in aggiunta al bonus settimanale ricorrente.
+    milestones: { 3: 10, 7: 20, 14: 40, 30: 80, 100: 250 },
+
+    // --- Rientro dopo un'assenza ---
+    // Il companion fa festa, non il broncio.
+    welcomeBackAfterDays: 2,
+
+    // --- Promemoria serale ---
+    // Una sola volta al giorno e solo se mancano coccole. Funziona finche'
+    // la pagina resta aperta: per la notifica vera aggancia l'evento
+    // companion:reminder al tuo sistema di notifiche.
+    reminderHour: 20,
+
+    // --- Storico ---
+    historyMaxDays: 180,      // giorni completati tenuti in memoria
+
+    // --- Comparsa a sfera ---
+    // La sfera cade, rimbalza, tremola tre volte e si apre.
+    // ballImage: se metti il percorso di una tua immagine, sostituisce
+    // il disegno predefinito senza toccare l'animazione.
+    ballImage: null,
+    appearOnFirstRun: true,   // il primo companion arriva dentro la sfera
+    nicknameMaxLength: 16,    // lunghezza massima del nomignolo
+
     // --- Comportamento del widget ---
     typewriter: true,         // testo che compare lettera per lettera
     typeSpeedMs: 18,
@@ -336,6 +369,12 @@
       'si mette in mezzo allo schermo',
       'batte la zampa, impaziente'
     ],
+    welcome: [
+      'ti salta addosso: sei tornato!',
+      'ti gira intorno tre volte per la felicita\'',
+      'e\' corso alla porta appena ti ha sentito',
+      'ti fa vedere il suo posto preferito, come se non fossi mai andato via'
+    ],
     nudge: [
       'forse vuole che controlli i prezzi?',
       'guarda in direzione dell\'album...',
@@ -345,6 +384,25 @@
       'punta lo sguardo sulle carte mancanti'
     ]
   };
+
+  /* ----------------------------------------------------------
+     3c. PARTICELLE
+     Ogni evento ha la sua particella: il tipo di effetto dice cosa
+     e' successo prima ancora di leggere la nuvoletta.
+       heart     coccola valida
+       level     salita di livello
+       dust      polvere magica guadagnata
+       confetti  giornata o settimana completata
+     ---------------------------------------------------------- */
+
+  var PARTICLES = {
+    heart:    { glyph: '\u2665', count: 4,  spread: 40 },
+    level:    { glyph: '\u2726', count: 10, spread: 46 },
+    dust:     { glyph: '\u2726', count: 12, spread: 54 },
+    confetti: { glyph: '',        count: 14, spread: 60 }
+  };
+
+  var CONFETTI_COLORS = 4; // quante varianti .cmp-confetti-N ci sono nel CSS
 
   /* ----------------------------------------------------------
      4. UTILITY
@@ -360,7 +418,7 @@
   // appartengono ancora al giorno precedente.
   function gameDate() {
     var shift = (cfg.dayResetHour || 0) * 3600000;
-    return new Date(Date.now() - shift);
+    return new Date(nowMs() - shift);
   }
 
   function todayKey() {
@@ -368,11 +426,16 @@
   }
 
   // Mezzogiorno come riferimento: evita i salti dell'ora legale.
-  function yesterdayKey() {
+  // offset -1 = ieri, -2 = l'altro ieri.
+  function dayKeyOffset(offset) {
     var d = gameDate();
     d.setHours(12, 0, 0, 0);
-    d.setDate(d.getDate() - 1);
+    d.setDate(d.getDate() + offset);
     return dayKeyFrom(d);
+  }
+
+  function yesterdayKey() {
+    return dayKeyOffset(-1);
   }
 
   // Ore di silenzio: il companion non prende iniziativa.
@@ -446,6 +509,28 @@
     document.dispatchEvent(ev);
   }
 
+  // Nome da mostrare: il nomignolo scelto dall'utente, se c'e'.
+  function displayName(creature) {
+    if (!creature) return 'Companion';
+    var rec = state && state.owned ? state.owned[creature.id] : null;
+    return (rec && rec.nickname) ? rec.nickname : creature.name;
+  }
+
+  // Lampo bianco su tutto lo schermo: per i momenti grossi.
+  function screenFlash(ms) {
+    if (prefersReducedMotion()) return;
+    var el = document.createElement('div');
+    el.className = 'cmp-flash';
+    document.body.appendChild(el);
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, ms || 420);
+  }
+
+  // Suggerimenti generati dai dati veri dell'app (prezzi, lista dei
+  // desideri, doppioni). Impostati con Companion.setNudges([...]).
+  var liveNudges = [];
+
   // Battuta a caso: unisce le frasi della creatura e il pool condiviso.
   function speakLine(creature, kind) {
     var own = (creature && creature.lines && creature.lines[kind]) || [];
@@ -477,6 +562,17 @@
      Per Supabase: Companion.configureStorage({ load, save }).
      ---------------------------------------------------------- */
 
+  // Orologio: sostituibile con quello del server, cosi' spostare l'ora del
+  // telefono non regala streak e polvere.
+  // Companion.configureClock({ now: function () { return timestampDalServer; } });
+  var clock = {
+    now: function () { return Date.now(); }
+  };
+
+  function nowMs() {
+    return clock.now();
+  }
+
   var memoryStore = {};
 
   var storage = {
@@ -504,6 +600,7 @@
   var cfg = {};
   var state = null;
   var started = false;
+  var pendingAppear = false;   // primo companion in attesa della comparsa
 
   function blankState() {
     return {
@@ -525,7 +622,15 @@
       lastDust: 0,           // polvere assegnata l'ultima volta
       lastDustDay: null,     // giorno a cui si riferisce lastDust
 
-      hidden: false          // il companion e' stato tolto dalla schermata
+      hidden: false,         // il companion e' stato tolto dalla schermata
+
+      tokens: 0,             // gettoni di recupero disponibili
+      milestonesDone: [],    // traguardi di streak gia' premiati
+      history: [],           // giorni completati, dal piu' vecchio
+      longestStreak: 0,
+      totalDays: 0,          // giornate completate in tutto
+      lastWelcomeDay: null,  // ultimo giorno in cui ha fatto festa al rientro
+      reminder: false        // promemoria serale attivo
     };
   }
 
@@ -543,7 +648,7 @@
 
   function ensureOwned(id) {
     if (!state.owned[id]) {
-      state.owned[id] = { xp: 0, pets: 0, unlockedAt: Date.now() };
+      state.owned[id] = { xp: 0, pets: 0, unlockedAt: nowMs() };
     }
     return state.owned[id];
   }
@@ -566,6 +671,7 @@
       state.activeId = chosen.id;
       ensureOwned(chosen.id);
       persist();
+      pendingAppear = true;
       emit('companion:assigned', { id: chosen.id, name: chosen.name });
     }
     ensureOwned(state.activeId);
@@ -654,15 +760,28 @@
 
     if (state.streak > 0 && state.streakDay &&
         state.streakDay !== day && state.streakDay !== yesterdayKey()) {
-      var lost = state.streak;
-      state.streak = 0;
-      state.streakDay = null;
-      changed = true;
-      // Ritardato di un tick: cosi' l'evento arriva anche a chi si
-      // registra subito dopo Companion.init().
-      setTimeout(function () {
-        emit('companion:streakbroken', { lost: lost });
-      }, 0);
+
+      // Un solo giorno saltato e un gettone in tasca: la streak si salva.
+      if (cfg.recoveryTokens && state.tokens > 0 && state.streakDay === dayKeyOffset(-2)) {
+        state.tokens -= 1;
+        state.streakDay = yesterdayKey();
+        changed = true;
+        var salvata = state.streak;
+        var rimasti = state.tokens;
+        setTimeout(function () {
+          emit('companion:recovered', { streak: salvata, tokensLeft: rimasti });
+        }, 0);
+      } else {
+        var lost = state.streak;
+        state.streak = 0;
+        state.streakDay = null;
+        changed = true;
+        // Ritardato di un tick: cosi' l'evento arriva anche a chi si
+        // registra subito dopo Companion.init().
+        setTimeout(function () {
+          emit('companion:streakbroken', { lost: lost });
+        }, 0);
+      }
     }
 
     if (changed) persist();
@@ -674,7 +793,7 @@
 
   function cooldownLeft() {
     if (!state.lastCountedPetAt) return 0;
-    var left = cfg.petCooldownMs - (Date.now() - state.lastCountedPetAt);
+    var left = cfg.petCooldownMs - (nowMs() - state.lastCountedPetAt);
     return left > 0 ? left : 0;
   }
 
@@ -715,10 +834,44 @@
       dust += weekly.dust;
     }
 
+    // Traguardi una tantum: 3, 7, 14, 30, 100 giorni.
+    var milestone = null;
+    var msDust = cfg.milestones ? cfg.milestones[state.streak] : 0;
+    if (!state.milestonesDone) state.milestonesDone = [];
+    if (msDust && state.milestonesDone.indexOf(state.streak) === -1) {
+      state.milestonesDone.push(state.streak);
+      milestone = { days: state.streak, dust: msDust };
+      dust += msDust;
+    }
+
+    // Gettone di recupero guadagnato.
+    var token = false;
+    if (cfg.recoveryTokens && cfg.recoveryTokenEvery > 0 &&
+        state.streak % cfg.recoveryTokenEvery === 0 &&
+        state.tokens < cfg.recoveryTokenMax) {
+      state.tokens += 1;
+      token = true;
+    }
+
+    // Storico e statistiche.
+    if (!state.history) state.history = [];
+    if (state.history[state.history.length - 1] !== day) state.history.push(day);
+    if (state.history.length > cfg.historyMaxDays) {
+      state.history = state.history.slice(-cfg.historyMaxDays);
+    }
+    state.totalDays = (state.totalDays || 0) + 1;
+    if (state.streak > (state.longestStreak || 0)) state.longestStreak = state.streak;
+
     state.lastDust = dust;
     state.lastDustDay = day;
 
-    return { streak: state.streak, dust: dust, weekly: weekly };
+    return {
+      streak: state.streak,
+      dust: dust,
+      weekly: weekly,
+      milestone: milestone,
+      token: token
+    };
   }
 
   /* ----------------------------------------------------------
@@ -843,7 +996,7 @@
       canvas.height = 16 * this.scale + this.scale * 2; // spazio per il rimbalzo
       canvas.className = 'cmp-canvas';
       canvas.setAttribute('role', 'img');
-      canvas.setAttribute('aria-label', (this.creature && this.creature.name) || 'Companion');
+      canvas.setAttribute('aria-label', displayName(this.creature));
       this.canvas = canvas;
       this.img = null;
       this.ctx = canvas.getContext('2d');
@@ -852,7 +1005,7 @@
     } else {
       var img = document.createElement('img');
       img.className = 'cmp-sprite-img';
-      img.alt = (this.creature && this.creature.name) || 'Companion';
+      img.alt = displayName(this.creature);
       img.width = 16 * this.scale;
       img.height = 16 * this.scale;
       this.img = img;
@@ -868,7 +1021,8 @@
   CompanionSprite.prototype.applyImagePose = function () {
     if (!this.imageMap) return;
     var src = this.imageMap[this.pose] || this.imageMap.idle || cfg.fallbackImage;
-    if (src && this.img.src.indexOf(src) === -1) {
+    var current = this.img.src || '';
+    if (src && current.indexOf(src) === -1) {
       this.img.src = src;
     }
   };
@@ -878,15 +1032,15 @@
     this._setupElement(); // ricrea l'elemento se questa creatura richiede un tipo diverso
 
     if (this.mode === 'image-multi') {
-      this.img.alt = creature.name;
+      this.img.alt = displayName(creature);
       this.applyImagePose();
       return;
     }
     if (this.mode === 'image') {
-      this.img.alt = creature.name;
+      this.img.alt = displayName(creature);
       return;
     }
-    this.canvas.setAttribute('aria-label', creature.name);
+    this.canvas.setAttribute('aria-label', displayName(creature));
     this.render();
     if (this.running && !this._tickScheduled) this.tick(); // riavvia il ciclo se era fermo (arrivava da una creatura a immagine)
   };
@@ -1059,11 +1213,26 @@
       });
     }
 
+    this.activeNudge = null;
+    this.nudgeTimer = null;
+    this.reminderTimer = null;
+
+    bubble.addEventListener('click', function () {
+      if (!self.activeNudge) return;
+      emit('companion:nudgeaction', {
+        id: self.activeNudge.id,
+        text: self.activeNudge.text
+      });
+      self.bubble.classList.remove('is-actionable');
+      self.activeNudge = null;
+    });
+
     this.syncStatus();
     this.scheduleChatter();
     this.scheduleHop();
     this.scheduleWalk();
     this.statusTimer = setInterval(function () { self.syncStatus(); }, cfg.statusRefreshMs);
+    this.scheduleReminder();
   }
 
   // Testo a macchina da scrivere, come le finestre di dialogo delle console
@@ -1099,6 +1268,83 @@
         hideLater();
       }
     }, cfg.typeSpeedMs);
+  };
+
+  // Suggerimento cliccabile: al tocco emette companion:nudgeaction, che il
+  // tuo codice usa per portare l'utente dove serve.
+  CornerWidget.prototype.sayNudge = function (nudge) {
+    var text = typeof nudge === 'string' ? nudge : nudge.text;
+    this.activeNudge = (typeof nudge === 'string') ? null : nudge;
+    this.say(text, 5200);
+
+    if (this.activeNudge) {
+      this.bubble.classList.add('is-actionable');
+      var self = this;
+      if (this.nudgeTimer) clearTimeout(this.nudgeTimer);
+      this.nudgeTimer = setTimeout(function () {
+        self.bubble.classList.remove('is-actionable');
+        self.activeNudge = null;
+      }, 6400);
+    }
+    emit('companion:nudge', { id: this.activeNudge ? this.activeNudge.id : null, text: text });
+  };
+
+  // Rientro dopo un'assenza: festa, mai broncio. Una volta al giorno.
+  CornerWidget.prototype.welcomeBack = function () {
+    if (!state.lastPetAt) return;
+    var days = (nowMs() - state.lastPetAt) / 86400000;
+    if (days < cfg.welcomeBackAfterDays) return;
+    if (state.lastWelcomeDay === todayKey()) return;
+
+    state.lastWelcomeDay = todayKey();
+    persist();
+
+    var self = this;
+    setTimeout(function () {
+      self.sprite.setPose('excited', 1400);
+      self.burst('heart');
+      self.say(speakLine(getCreature(state.activeId), 'welcome'), 4200);
+    }, 900);
+
+    emit('companion:welcomeback', { days: Math.floor(days), streak: state.streak });
+  };
+
+  // Promemoria serale: scatta all'ora scelta e solo se mancano coccole.
+  CornerWidget.prototype.scheduleReminder = function () {
+    if (this.reminderTimer) clearTimeout(this.reminderTimer);
+    if (!state.reminder) return;
+
+    var now = new Date();
+    var target = new Date();
+    target.setHours(cfg.reminderHour, 0, 0, 0);
+    if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
+
+    var self = this;
+    this.reminderTimer = setTimeout(function () { self.fireReminder(); },
+                                    target.getTime() - now.getTime());
+  };
+
+  CornerWidget.prototype.fireReminder = function () {
+    rollDay();
+    if (!isGoalDone()) {
+      var info = Companion.getStreak();
+      var text = info.remaining + (info.remaining === 1 ? ' coccola' : ' coccole') +
+                 ' e la giornata e\' completa';
+
+      this.say(text, 5200);
+      emit('companion:reminder', {
+        remaining: info.remaining,
+        streak: info.streak,
+        text: text
+      });
+
+      try {
+        if (global.Notification && global.Notification.permission === 'granted') {
+          new global.Notification(displayName(getCreature(state.activeId)), { body: text });
+        }
+      } catch (e) { /* niente: il promemoria in pagina e' gia' partito */ }
+    }
+    this.scheduleReminder();
   };
 
   /* Postura e oggetti: rileggono lo stato e aggiornano le classi CSS.
@@ -1187,20 +1433,76 @@
 
   CornerWidget.prototype.burst = function (kind) {
     if (prefersReducedMotion()) return;
-    var count = kind === 'level' ? 10 : 4;
-    for (var i = 0; i < count; i++) {
+    var type = PARTICLES[kind] || PARTICLES.heart;
+    var name = PARTICLES[kind] ? kind : 'heart';
+    var left = 50 - type.spread / 2;
+
+    for (var i = 0; i < type.count; i++) {
       (function (index) {
         var p = document.createElement('span');
-        p.className = 'cmp-particle cmp-particle--' + (kind || 'heart');
-        p.textContent = kind === 'level' ? '\u2726' : '\u2665';
-        p.style.left = (30 + Math.random() * 40) + '%';
-        p.style.animationDelay = (index * 60) + 'ms';
+        p.className = 'cmp-particle cmp-particle--' + name;
+        if (name === 'confetti') {
+          p.className += ' cmp-confetti-' + (1 + Math.floor(Math.random() * CONFETTI_COLORS));
+        }
+        p.textContent = type.glyph;
+        p.style.left = (left + Math.random() * type.spread) + '%';
+        p.style.animationDelay = (index * 50) + 'ms';
         this.fx.appendChild(p);
         setTimeout(function () {
           if (p.parentNode) p.parentNode.removeChild(p);
-        }, 1400 + index * 60);
+        }, 1600 + index * 50);
       }).call(this, i);
     }
+  };
+
+  /* Comparsa a sfera: cade, rimbalza, tremola tre volte, si apre.
+     Il disegno della sfera e' in companion.css (.cmp-ball) e si sostituisce
+     con una tua immagine passando ballImage a Companion.init(). */
+  CornerWidget.prototype.appear = function (done) {
+    var self = this;
+    if (this.appearing) return;
+    this.appearing = true;
+
+    var ball = document.createElement('div');
+    ball.className = 'cmp-ball';
+    if (cfg.ballImage) {
+      ball.classList.add('is-image');
+      ball.style.backgroundImage = 'url("' + cfg.ballImage + '")';
+    }
+    this.stage.appendChild(ball);
+    this.root.classList.add('is-appearing');
+
+    function finish(delay) {
+      setTimeout(function () {
+        if (ball.parentNode) ball.parentNode.removeChild(ball);
+        self.root.classList.remove('is-appearing');
+        self.root.classList.add('is-revealed');
+        setTimeout(function () { self.root.classList.remove('is-revealed'); }, 560);
+
+        self.appearing = false;
+        self.burst('confetti');
+        self.say('Ciao! Sono ' + displayName(getCreature(state.activeId)), 3600);
+        emit('companion:appeared', { id: state.activeId });
+        if (typeof done === 'function') done();
+      }, delay);
+    }
+
+    if (prefersReducedMotion()) {
+      finish(60);
+      return;
+    }
+
+    ball.classList.add('is-drop');                       // caduta e rimbalzo
+    setTimeout(function () {
+      ball.classList.add('is-wobble');                   // tre tremolii
+    }, 640);
+    setTimeout(function () {
+      ball.classList.remove('is-wobble');
+      ball.classList.add('is-open');                     // si apre
+      screenFlash(420);
+    }, 2740);
+
+    finish(3060);
   };
 
   // Chiacchiere spontanee: ogni tanto dice qualcosa da solo.
@@ -1231,7 +1533,14 @@
       kind = 'nudge';
     }
 
-    this.say(speakLine(creature, kind), 3400);
+    // Se ci sono suggerimenti veri, hanno la precedenza su quelli generici
+    // e la nuvoletta diventa cliccabile.
+    if (kind === 'nudge' && liveNudges.length) {
+      var n = pickRandom(liveNudges);
+      this.sayNudge(n);
+    } else {
+      this.say(speakLine(creature, kind), 3400);
+    }
     this.scheduleChatter();
   };
 
@@ -1243,10 +1552,20 @@
     void this.root.offsetWidth;
     this.root.classList.add('is-squash');
 
-    if (r.weekly || r.leveledUp || r.goalJustCompleted) this.burst('level');
+    if (r.weekly) { this.burst('confetti'); this.burst('dust'); }
+    else if (r.goalJustCompleted) { this.burst('confetti'); this.burst('dust'); }
+    else if (r.leveledUp) this.burst('level');
     else if (r.counted) this.burst('heart');
 
     var progress = dotsFor(r.dailyPets, r.goal);
+
+    if (r.milestone) {
+      this.say('Traguardo: ' + r.milestone.days + ' giorni di fila! +' + r.dust +
+               ' polvere', 4600);
+      this.scheduleChatter();
+      this.scheduleHop();
+      return;
+    }
 
     if (r.weekly) {
       var extra = [];
@@ -1256,7 +1575,8 @@
                (extra.length ? ' e ' + extra.join(' e ') : ''), 4600);
     } else if (r.goalJustCompleted) {
       this.say(progress + '  Giornata completa: +' + r.dust +
-               ' polvere (streak ' + r.streak + ')', 4200);
+               ' polvere (streak ' + r.streak + ')' +
+               (r.tokenEarned ? ' · gettone di recupero!' : ''), 4200);
     } else if (r.leveledUp) {
       this.say('Livello affetto ' + r.level + '!', 3200);
     } else if (r.counted) {
@@ -1283,6 +1603,13 @@
     if (!widget) widget = new CornerWidget();
     if (state.hidden) widget.root.classList.add('is-hidden');
     else widget.root.classList.remove('is-hidden');
+
+    if (pendingAppear && cfg.appearOnFirstRun && !state.hidden) {
+      pendingAppear = false;
+      widget.appear();
+    } else if (!state.hidden) {
+      widget.welcomeBack();
+    }
     return widget;
   }
 
@@ -1296,7 +1623,7 @@
   function petActive() {
     var creature = getCreature(state.activeId);
     var rec = ensureOwned(state.activeId);
-    var now = Date.now();
+    var now = nowMs();
 
     rollDay();
 
@@ -1315,6 +1642,8 @@
       goal: cfg.dailyPetGoal,
       goalJustCompleted: false,
       goalDone: isGoalDone(),
+      milestone: null,
+      tokenEarned: false,
       streak: state.streak,
       pets: rec.pets + 1
     };
@@ -1355,6 +1684,8 @@
           result.dust = done.dust;
           result.weekly = done.weekly;
           result.streak = done.streak;
+          result.milestone = done.milestone;
+          result.tokenEarned = done.token;
         }
       }
     }
@@ -1395,6 +1726,18 @@
         streak: result.streak,
         companionId: creature.id
       });
+
+      if (result.milestone) {
+        emit('companion:milestone', {
+          days: result.milestone.days,
+          dust: result.milestone.dust,
+          companionId: creature.id
+        });
+      }
+
+      if (result.tokenEarned) {
+        emit('companion:token', { tokens: state.tokens, max: cfg.recoveryTokenMax });
+      }
 
       if (result.weekly && (result.weekly.item || result.weekly.pack)) {
         // Oggetti e bustina extra: accreditali tu lato app.
@@ -1453,6 +1796,99 @@
       return Companion.getActive();
     },
 
+    /* Orologio del server: impedisce di guadagnare polvere spostando
+       l'ora del telefono.
+       Companion.configureClock({ now: function () { return msDalServer; } }); */
+    configureClock: function (adapter) {
+      if (adapter && typeof adapter.now === 'function') clock.now = adapter.now;
+      if (started && widget) widget.syncStatus();
+    },
+
+    /* Rilegge lo stato dall'archivio configurato: chiamalo dopo aver
+       scaricato i dati dall'altro dispositivo. */
+    sync: function () {
+      loadState();
+      if (widget) { widget.refresh(); widget.syncStatus(); }
+      emit('companion:synced', {
+        activeId: state.activeId,
+        dailyPets: state.dailyPets,
+        streak: state.streak
+      });
+      return Companion.getStreak();
+    },
+
+    /* Suggerimenti costruiti sui dati veri dell'app. Accetta stringhe o
+       oggetti { id, text }: con l'id la nuvoletta diventa cliccabile ed
+       emette companion:nudgeaction, cosi' puoi portare l'utente sulla
+       schermata giusta.
+         Companion.setNudges([
+           { id: 'prezzi', text: 'una carta della lista e\' scesa del 12%' }
+         ]); */
+    setNudges: function (list) {
+      liveNudges = [];
+      if (!list || !list.length) return 0;
+      for (var i = 0; i < list.length; i++) {
+        var n = list[i];
+        if (typeof n === 'string') liveNudges.push({ id: null, text: n });
+        else if (n && n.text) liveNudges.push({ id: n.id || null, text: n.text });
+      }
+      return liveNudges.length;
+    },
+
+    /* Promemoria serale. Chiedi il permesso alle notifiche solo dopo un
+       gesto dell'utente, altrimenti i browser lo rifiutano. */
+    enableReminder: function () {
+      state.reminder = true;
+      persist();
+      try {
+        if (global.Notification && global.Notification.permission === 'default') {
+          global.Notification.requestPermission();
+        }
+      } catch (e) { /* niente: il promemoria in pagina funziona lo stesso */ }
+      if (widget) widget.scheduleReminder();
+      return true;
+    },
+
+    disableReminder: function () {
+      state.reminder = false;
+      persist();
+      if (widget && widget.reminderTimer) clearTimeout(widget.reminderTimer);
+      return false;
+    },
+
+    getReminder: function () {
+      return { enabled: !!state.reminder, hour: cfg.reminderHour };
+    },
+
+    /* Giorni completati, dal piu' vecchio: pronto per il calendario. */
+    getHistory: function () {
+      return (state.history || []).slice();
+    },
+
+    /* Statistiche del collezionista. */
+    getStats: function () {
+      var owned = 0, pets = 0, xp = 0, id;
+      for (id in state.owned) {
+        if (Object.prototype.hasOwnProperty.call(state.owned, id)) {
+          owned += 1;
+          pets += state.owned[id].pets || 0;
+          xp += state.owned[id].xp || 0;
+        }
+      }
+      return {
+        owned: owned,
+        total: ROSTER.length,
+        pets: pets,
+        xp: xp,
+        streak: state.streak,
+        longestStreak: state.longestStreak || 0,
+        daysCompleted: state.totalDays || 0,
+        tokens: state.tokens || 0,
+        milestones: (state.milestonesDone || []).slice(),
+        since: state.owned[state.activeId] ? state.owned[state.activeId].unlockedAt : null
+      };
+    },
+
     configureStorage: function (adapter) {
       if (adapter && typeof adapter.load === 'function') storage.load = adapter.load;
       if (adapter && typeof adapter.save === 'function') storage.save = adapter.save;
@@ -1509,6 +1945,42 @@
       if (widget) widget.sprite.setPose(pose, ms || 1200);
     },
 
+    /* Rigioca la comparsa a sfera. Con creatureId fa comparire quella
+       creatura (deve essere posseduta). onDone viene chiamata alla fine. */
+    appear: function (options) {
+      options = options || {};
+      if (options.creatureId && state.owned[options.creatureId]) {
+        Companion.setActive(options.creatureId);
+      }
+      var w = mountWidget();
+      w.appear(options.onDone);
+      return w;
+    },
+
+    /* Nomignolo scelto dall'utente. Stringa vuota = torna al nome originale. */
+    setNickname: function (id, nickname) {
+      var creature = getCreature(id);
+      if (!creature || !state.owned[id]) return false;
+
+      var clean = String(nickname === null || nickname === undefined ? '' : nickname)
+        .replace(/[\r\n\t]+/g, ' ')
+        .trim()
+        .slice(0, cfg.nicknameMaxLength);
+
+      if (clean) state.owned[id].nickname = clean;
+      else delete state.owned[id].nickname;
+
+      persist();
+      if (widget) widget.refresh();
+      emit('companion:renamed', { id: id, name: creature.name, nickname: clean || null });
+      return true;
+    },
+
+    getNickname: function (id) {
+      var rec = state.owned[id];
+      return (rec && rec.nickname) || null;
+    },
+
     /* Coccola da codice (stessa logica del click sul widget). */
     pet: function () {
       if (widget) {
@@ -1527,6 +1999,8 @@
       return {
         id: creature.id,
         name: creature.name,
+        nickname: rec.nickname || null,
+        displayName: displayName(creature),
         rarity: creature.rarity,
         palette: PALETTES[creature.palette],
         xp: rec.xp,
@@ -1555,6 +2029,15 @@
                     typeof state.lastDust === 'number') ? state.lastDust : 0,
         dustIfCompleted: dustForStreak(next) +
           ((cfg.weeklyEvery > 0 && next % cfg.weeklyEvery === 0) ? cfg.weeklyDust : 0),
+        tokens: state.tokens || 0,
+        tokensMax: cfg.recoveryTokenMax,
+        nextMilestone: (function () {
+          var days = Object.keys(cfg.milestones || {}).map(Number).sort(function (a, b) { return a - b; });
+          for (var i = 0; i < days.length; i++) {
+            if (days[i] > state.streak) return days[i];
+          }
+          return null;
+        })(),
         daysToWeeklyBonus: cfg.weeklyEvery > 0
           ? (cfg.weeklyEvery - (next % cfg.weeklyEvery)) % cfg.weeklyEvery
           : null
@@ -1567,6 +2050,8 @@
         return {
           id: c.id,
           name: c.name,
+          nickname: owned ? (state.owned[c.id].nickname || null) : null,
+          displayName: owned ? displayName(c) : c.name,
           rarity: c.rarity,
           owned: owned,
           active: state.activeId === c.id,
@@ -1592,6 +2077,7 @@
       if (state.owned[id]) return { id: id, name: creature.name, duplicate: true };
       ensureOwned(id);
       persist();
+      if (creature.rarity === 'leggendario') screenFlash(560);
       emit('companion:unlocked', { id: id, name: creature.name, rarity: creature.rarity });
       return { id: id, name: creature.name, duplicate: false };
     },
@@ -1650,6 +2136,34 @@
         persist();
         if (widget) { widget.renderTokens(false); widget.syncStatus(); }
         return Companion.getStreak();
+      },
+      /* Gettoni di recupero in tasca. */
+      setTokens: function (n) {
+        state.tokens = clamp(n, 0, cfg.recoveryTokenMax);
+        persist();
+        return Companion.getStreak();
+      },
+      /* Finge un giorno saltato: l'ultima giornata chiusa e' l'altro ieri.
+         Con un gettone in tasca la streak si salva da sola. */
+      skipDay: function () {
+        state.streakDay = dayKeyOffset(-2);
+        state.goalDay = null;
+        state.dailyPets = 0;
+        state.petDay = todayKey();
+        persist();
+        return Companion.getStreak();
+      },
+      /* Finge un'assenza di N giorni, per provare il rientro. */
+      awayDays: function (n) {
+        state.lastPetAt = nowMs() - n * 86400000;
+        state.lastWelcomeDay = null;
+        persist();
+        if (widget) widget.welcomeBack();
+        return n;
+      },
+      /* Fa scattare subito il promemoria serale. */
+      fireReminder: function () {
+        if (widget) widget.fireReminder();
       },
       /* Spezza la streak come se avessi saltato un giorno. */
       breakStreak: function () {
