@@ -1,0 +1,15 @@
+GRAFICA DELLA PAGINA DATI
+=========================
+
+I file card.png, cursor.png, frame.png, heading.png e messagebox.png
+derivano dalle immagini del plugin per Pokemon Essentials:
+
+  [MUI] Pokedex Data Page, versione 2.0.5
+  Autore: Lucidious89
+  Sito:   https://eeveeexpo.com/resources/1380/
+
+Sono ritagli e ricomposizioni delle immagini originali, adattati per
+essere usati come cornici a nove parti in CSS.
+
+Il credito all'autore va mantenuto ovunque questa grafica venga
+mostrata, come richiesto nei metadati del plugin originale.
