@@ -176,7 +176,7 @@
     </div>
     <div style="margin-top:12px">
       <button class="act" data-do="appear">Rifai la comparsa a sfera</button>
-      <button class="act" data-do="flash">Prova il lampo (leggendario)</button>
+      <button class="act" data-do="flash">Prova il lampo</button>
     </div>
   </section>
 
@@ -206,6 +206,7 @@
   <section>
     <h2>Prove</h2>
     <button class="act" data-do="drop">Tira un drop (100%)</button>
+    <button class="act" data-do="prune">Simula un salvataggio vecchio</button>
     <button class="act" data-do="unlock-bulbasaur">Sblocca bulbasaur (prova)</button>
     <button class="act" data-do="unlock-jolteon">Sblocca jolteon (prova)</button>
     <button class="act" data-do="excited">Fallo esultare</button>
@@ -357,7 +358,7 @@
    'streak', 'streakbroken', 'bonus', 'visibility', 'synced',
    'renamed', 'appeared', 'milestone', 'token', 'recovered',
    'welcomeback', 'reminder', 'nudge', 'nudgeaction',
-   'dayCompanion', 'pinned'].forEach(function (name) {
+   'dayCompanion', 'pinned', 'pruned'].forEach(function (name) {
     document.addEventListener('companion:' + name, function (e) {
       log('companion:' + name + '  ' + JSON.stringify(e.detail));
       refresh();
@@ -411,7 +412,7 @@
       log('nomignolo rimosso');
     }
     if (act === 'appear') Companion.appear();
-    if (act === 'flash') Companion.unlock('crepuscolo');
+    if (act === 'flash') Companion.dev.flash();
     if (act === 'hide-widget') { Companion.hideWidget(); log('companion tolto dalla schermata'); }
     if (act === 'show-widget') { Companion.showWidget(); log('companion rimesso in schermata'); }
     if (act === 'tokens-demo') { useDemoTokens(); log('oggetti segnaposto attivati'); }
@@ -423,6 +424,16 @@
     if (act === 'unlock-bulbasaur') {
       var u = Companion.unlock('bulbasaur');
       log(u.duplicate ? 'bulbasaur gia\' sbloccato' : 'bulbasaur sbloccato!');
+    }
+    if (act === 'prune') {
+      // Infila una creatura che non esiste piu' e ricarica: deve sparire
+      // da sola senza rompere nulla.
+      var raw = JSON.parse(localStorage.getItem('cardsync.companion.v1'));
+      raw.owned.brasino = { xp: 40, pets: 12, unlockedAt: Date.now() };
+      raw.activeId = 'brasino';
+      localStorage.setItem('cardsync.companion.v1', JSON.stringify(raw));
+      Companion.sync();
+      log('salvataggio vecchio caricato: guarda l\'evento pruned');
     }
     if (act === 'unlock-jolteon') {
       var j = Companion.unlock('jolteon');

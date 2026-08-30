@@ -187,8 +187,27 @@
   };
 
   /* ----------------------------------------------------------
-     3. SPRITE
-     Corpo condiviso 16x16, ogni creatura sovrascrive le righe alte.
+     3. CREATURE
+     Il roster contiene solo creature vere, con le proprie GIF per posa
+     in spriteImages. L'ordine qui sotto e' anche il numero di catalogo
+     mostrato nel box: la prima e' la N. 001.
+
+     Per aggiungerne una:
+       - crea la cartella companion/<nome>/ con idle.gif e happy.gif
+       - copia una voce esistente e cambia id, name, rarity, weight,
+         percorsi e battute
+       - startingEligible: true la rende assegnabile come primo companion
+
+     Piu' sotto (sezione 3d) resta il disegno a codice: serve solo se un
+     giorno vorrai una creatura senza GIF, costruita con la griglia di
+     pixel invece che con le immagini.
+     ---------------------------------------------------------- */
+
+  /* ----------------------------------------------------------
+     3d. DISEGNO A CODICE (facoltativo)
+     Corpo condiviso 16x16 e tavolozze, usati solo dalle creature senza
+     spriteImages. Oggi nessuna creatura lo usa: e' il binario di scorta
+     per creature disegnate a pixel invece che animate con GIF.
      ---------------------------------------------------------- */
 
   var BASE_BODY = [
@@ -211,98 +230,6 @@
   ];
 
   var ROSTER = [
-    {
-      id: 'brasino',
-      name: 'Brasino',
-      palette: 'ember',
-      rarity: 'comune',
-      weight: 40,
-      top: {
-        0: '.......dd.......',
-        1: '......oddo......'
-      },
-      lines: {
-        idle:    ['...', 'scoppietta piano', 'ha caldo'],
-        happy:   ['si arrotola felice', 'fa le fusa crepitanti'],
-        excited: ['salta sul posto!', 'scintille ovunque!'],
-        sad:     ['la fiammella e\' bassa', 'ti aspettava'],
-        sleepy:  ['brace sotto la cenere', 'sbadiglia']
-      }
-    },
-    {
-      id: 'fogliolo',
-      name: 'Fogliolo',
-      palette: 'leaf',
-      rarity: 'comune',
-      weight: 40,
-      top: {
-        0: '........dd......',
-        1: '.......odd......'
-      },
-      lines: {
-        idle:    ['...', 'segue la luce', 'profuma di erba'],
-        happy:   ['il germoglio si apre', 'ondeggia contento'],
-        excited: ['petali dappertutto!', 'sboccia di colpo!'],
-        sad:     ['le foglie sono giu\'', 'ha bisogno di te'],
-        sleepy:  ['si e\' chiuso a riccio', 'dorme al fresco']
-      }
-    },
-    {
-      id: 'gocciolo',
-      name: 'Gocciolo',
-      palette: 'drop',
-      rarity: 'raro',
-      weight: 14,
-      top: {
-        0: '........o.......',
-        1: '.......odo......'
-      },
-      lines: {
-        idle:    ['...', 'gorgoglia', 'fa bolle piccole'],
-        happy:   ['si scioglie di gioia', 'schizza acqua'],
-        excited: ['onda in arrivo!', 'bolle giganti!'],
-        sad:     ['si e\' un po\' prosciugato', 'ti guarda storto'],
-        sleepy:  ['acqua ferma', 'galleggia e dorme']
-      }
-    },
-    {
-      id: 'voltino',
-      name: 'Voltino',
-      palette: 'spark',
-      rarity: 'raro',
-      weight: 14,
-      top: {
-        0: '...o........o...',
-        1: '..odo......odo..',
-        2: '..odoooooooodo..'
-      },
-      lines: {
-        idle:    ['...', 'ronza piano', 'raddrizza le orecchie'],
-        happy:   ['fa scintille corte', 'vibra contento'],
-        excited: ['carica al massimo!', 'zap zap zap!'],
-        sad:     ['e\' quasi scarico', 'orecchie abbassate'],
-        sleepy:  ['stand-by', 'batteria bassa']
-      }
-    },
-    {
-      id: 'crepuscolo',
-      name: 'Crepuscolo',
-      palette: 'dusk',
-      rarity: 'leggendario',
-      weight: 2,
-      top: {
-        0: '....d......d....',
-        1: '...odo....odo...',
-        2: '...oooooooooo...'
-      },
-      lines: {
-        idle:    ['...', 'guarda lontano', 'l\'aria e\' piu\' fredda'],
-        happy:   ['la nebbia si dirada', 'brilla di stelle'],
-        excited: ['il cielo si apre!', 'qualcosa sta arrivando!'],
-        sad:     ['si e\' fatto ombra', 'silenzio'],
-        sleepy:  ['sogna il mattino', 'dorme tra le stelle']
-      }
-    },
     {
       // Bulbasaur: prima creatura reale con GIF per posa (idle, happy).
       // Sostituisci rarita'/battute quando vuoi affinarle.
@@ -692,10 +619,41 @@
     storage.save(cfg.storageKey, state);
   }
 
+  // Toglie dai salvataggi le creature che non stanno piu' nel roster:
+  // senza questo, un vecchio salvataggio terrebbe in vita companion
+  // inesistenti nelle statistiche e nella rotazione.
+  function pruneUnknown() {
+    var removed = [];
+    var id;
+
+    for (id in state.owned) {
+      if (Object.prototype.hasOwnProperty.call(state.owned, id) && !getCreature(id)) {
+        delete state.owned[id];
+        removed.push(id);
+      }
+    }
+
+    if (state.pinnedId && !getCreature(state.pinnedId)) state.pinnedId = null;
+    if (state.dayCompanionId && !getCreature(state.dayCompanionId)) {
+      state.dayCompanionId = null;
+      state.dayCompanionDay = null;
+    }
+    if (state.activeId && !getCreature(state.activeId)) state.activeId = null;
+
+    if (removed.length) {
+      persist();
+      setTimeout(function () {
+        emit('companion:pruned', { removed: removed });
+      }, 0);
+    }
+    return removed;
+  }
+
   function loadState() {
     var saved = storage.load(cfg.storageKey);
     state = saved && typeof saved === 'object' ? migrateState(saved) : blankState();
     if (!state.owned) state.owned = {};
+    pruneUnknown();
 
     // Prima assegnazione: una creatura casuale fra le comuni/rare
     if (!state.activeId || !getCreature(state.activeId)) {
@@ -2356,6 +2314,10 @@
         persist();
         if (widget) widget.welcomeBack();
         return n;
+      },
+      /* Lampo a schermo intero, per provarlo senza avere un leggendario. */
+      flash: function () {
+        screenFlash(560);
       },
       /* Fa passare un giorno: utile per vedere la rotazione del companion
          del giorno senza aspettare domani. */
