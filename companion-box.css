@@ -70,7 +70,8 @@
 .cbox-panel {
   position: relative;
   width: min(720px, 100%);
-  max-height: min(760px, 100%);
+  height: min(760px, 100%);
+  overflow: hidden;
   display: grid;
   grid-template-columns: 1fr 104px;
   gap: 12px;
@@ -111,6 +112,8 @@
   flex-direction: column;
   gap: 10px;
   padding-top: 14px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* --- comandi sotto lo schermo: croce, altoparlante, tasto verde --- */
@@ -121,6 +124,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 4px 4px;
+  flex: 0 0 auto;      /* resta sempre visibile sotto lo schermo */
 }
 
 .cbox-pad {
@@ -276,6 +280,7 @@
 /* --- testata: lente, spie, titolo --- */
 
 .cbox-head {
+  flex: 0 0 auto;
   position: relative;
   display: flex;
   align-items: center;
@@ -366,6 +371,7 @@
 /* --- i tasti dell'apparecchio --- */
 
 .cbox-tabs {
+  flex: 0 0 auto;
   display: flex;
   gap: 6px;
   padding: 0 0 10px;
@@ -492,7 +498,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 420px;
+  max-height: 260px;
   overflow: auto;
   padding: 4px;
   background: rgba(48, 56, 64, 0.08);
@@ -557,17 +563,15 @@
 
 .cbox-measures {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 4px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 6px;
   margin-bottom: 12px;
 }
 
 .cbox-measure {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
-  padding: 6px 8px;
-  border-bottom: 2px dotted rgba(48, 56, 64, 0.3);
 }
 
 /* --- Deposito: squadra, scatole, posti --- */
@@ -811,13 +815,12 @@
 
 .cbox-card-art {
   flex: 0 0 auto;
-  width: 84px;
-  height: 84px;
+  width: 80px;
+  height: 80px;
+  box-sizing: content-box;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  background: rgba(48, 56, 64, 0.1);
-  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.28);
 }
 
 .cbox-card-art .cbox-art-img,
@@ -889,8 +892,9 @@
 
 .cbox-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(184px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
 .cbox-stat {
@@ -907,7 +911,9 @@
 .cbox-cal {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 3px;
+  max-width: 320px;
+  margin-bottom: 12px;
 }
 
 .cbox-day {
@@ -915,7 +921,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 9px;
   color: var(--cbox-ink-soft);
   background: rgba(48, 56, 64, 0.08);
 }
@@ -1053,11 +1059,30 @@
   image-rendering: pixelated;
 }
 
-/* la cornice occupa gia' 12px per lato: il riempimento interno va ridotto */
+/* La cornice a nove parti richiede il bordo su tutti e quattro i lati:
+   toglierne uno la apre. Si regola solo il riempimento interno. */
 .cbox-measure,
-.cbox-stat { padding: 2px 4px; border-bottom: 0; }
+.cbox-stat {
+  padding: 2px 4px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.cbox-measure b,
+.cbox-stat b { font-size: 12px; }
+
 .cbox-list { padding: 2px; }
 .cbox-slot { border-width: 10px; }
+
+/* l'immagine nella scheda sta anch'essa su una scheda bianca */
+.cbox-card-art {
+  border: 12px solid transparent;
+  border-image: url("companion/dex/card.png") 12 fill stretch;
+  background: none;
+  box-shadow: none;
+  image-rendering: pixelated;
+}
 
 /* riquadro del testo: la finestra dei messaggi originale */
 .cbox-dex {
