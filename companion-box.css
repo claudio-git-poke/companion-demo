@@ -24,12 +24,19 @@
   --cbox-shell-dark: #7d211b;
   --cbox-shell-light: #e2604f;
 
-  /* schermo */
-  --cbox-screen: #b9cc5a;
-  --cbox-screen-dark: #8fa441;
-  --cbox-ink: #17330f;
-  --cbox-ink-soft: rgba(23, 51, 15, 0.62);
-  --cbox-accent: #2f6b2b;
+  /* schermo: colori campionati dalla pagina dati
+     (grafica di Lucidious89, vedi companion/dex/CREDITI.txt) */
+  --cbox-screen: #f8f8f8;
+  --cbox-screen-dark: #c8d0d8;
+  --cbox-ink: #303840;
+  --cbox-ink-soft: rgba(48, 56, 64, 0.62);
+  --cbox-accent: #30c0d8;
+
+  /* azzurri della pagina dati */
+  --cbox-cyan: #30c0d8;
+  --cbox-teal: #38a0b8;
+  --cbox-deep: #408098;
+  --cbox-sky: #70c4f0;
 
   /* spie */
   --cbox-lens: #57b0ea;
@@ -182,7 +189,7 @@
   font: inherit;
   font-size: 12px;
   cursor: pointer;
-  color: rgba(23, 51, 15, 0.6);
+  color: rgba(48, 56, 64, 0.6);
   background: var(--cbox-led-green);
   box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.28), 0 3px 0 var(--cbox-shell-dark);
 }
@@ -400,26 +407,19 @@
   min-height: 0;
   overflow: auto;
   padding: 16px;
-  border-radius: 6px;
-  background: var(--cbox-screen);
+  border-radius: 4px;
+
+  /* carta quadrettata come lo sfondo della pagina dati */
+  background-color: var(--cbox-screen);
+  background-image:
+    linear-gradient(var(--cbox-screen-dark) 2px, transparent 2px),
+    linear-gradient(90deg, var(--cbox-screen-dark) 2px, transparent 2px);
+  background-size: 32px 32px;
   box-shadow:
-    inset 0 0 0 3px var(--cbox-screen-dark),
-    inset 0 4px 10px rgba(23, 51, 15, 0.28),
+    inset 0 0 0 3px var(--cbox-deep),
     0 0 0 5px var(--cbox-shell-dark);
 }
 
-/* righe di scansione: appena percettibili, danno l'idea del vetro */
-.cbox-body::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(23, 51, 15, 0.07) 0 1px,
-    transparent 1px 3px
-  );
-}
 
 .cbox-view.is-off { display: none; }
 
@@ -434,7 +434,7 @@
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--cbox-ink-soft);
-  border-bottom: 2px solid rgba(23, 51, 15, 0.25);
+  border-bottom: 2px solid rgba(48, 56, 64, 0.25);
   padding-bottom: 6px;
 }
 
@@ -460,8 +460,8 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--cbox-ink);
-  background: rgba(23, 51, 15, 0.12);
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.28);
+  background: rgba(48, 56, 64, 0.12);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.28);
 }
 
 /* --- voce del catalogo --- */
@@ -469,8 +469,8 @@
 .cbox-dex {
   margin: 0 0 12px;
   padding: 10px 12px;
-  background: rgba(23, 51, 15, 0.07);
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.18);
+  background: rgba(48, 56, 64, 0.07);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.18);
 }
 
 .cbox-hint {
@@ -494,8 +494,8 @@
   max-height: 420px;
   overflow: auto;
   padding: 4px;
-  background: rgba(23, 51, 15, 0.08);
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.22);
+  background: rgba(48, 56, 64, 0.08);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.22);
 }
 
 .cbox-listrow {
@@ -566,7 +566,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 6px 8px;
-  border-bottom: 2px dotted rgba(23, 51, 15, 0.3);
+  border-bottom: 2px dotted rgba(48, 56, 64, 0.3);
 }
 
 /* --- Deposito: squadra, scatole, posti --- */
@@ -577,8 +577,8 @@
   gap: 10px;
   padding: 8px 10px;
   margin-bottom: 12px;
-  background: rgba(23, 51, 15, 0.12);
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.28);
+  background: rgba(48, 56, 64, 0.12);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.28);
 }
 
 .cbox-party-card {
@@ -607,9 +607,9 @@
   line-height: 1;
   padding: 8px 10px;
   cursor: pointer;
-  color: #fff3e2;
-  background: var(--cbox-shell);
-  box-shadow: 0 3px 0 var(--cbox-shell-dark);
+  color: #ffffff;
+  background: var(--cbox-teal);
+  box-shadow: 0 3px 0 var(--cbox-deep);
   border-radius: 4px;
 }
 
@@ -625,8 +625,8 @@
   color: var(--cbox-ink);
   border: 0;
   padding: 8px 10px;
-  background: rgba(23, 51, 15, 0.1);
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.28);
+  background: rgba(48, 56, 64, 0.1);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.28);
 }
 
 .cbox-boxname:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: -3px; }
@@ -636,7 +636,7 @@
   gap: 3px;
   padding: 6px;
   margin-bottom: 10px;
-  box-shadow: inset 0 0 0 3px rgba(23, 51, 15, 0.3);
+  box-shadow: inset 0 0 0 3px rgba(48, 56, 64, 0.3);
 }
 
 .cbox-slot {
@@ -646,13 +646,17 @@
   aspect-ratio: 1 / 1;
   cursor: pointer;
   background: rgba(253, 244, 220, 0.35);
-  box-shadow: inset 0 0 0 1px rgba(23, 51, 15, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(48, 56, 64, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.cbox-slot.is-empty { background: rgba(23, 51, 15, 0.06); }
+.cbox-slot.is-empty {
+  border-image: none;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.45);
+}
 .cbox-slot.is-active { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
 .cbox-slot.is-held { background: var(--cbox-led-yellow); }
 .cbox-slot:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: -3px; }
@@ -672,33 +676,33 @@
 .is-wall-1 {
   background-color: rgba(253, 244, 220, 0.5);
   background-image:
-    linear-gradient(rgba(23, 51, 15, 0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(23, 51, 15, 0.14) 1px, transparent 1px);
+    linear-gradient(rgba(48, 56, 64, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(48, 56, 64, 0.14) 1px, transparent 1px);
   background-size: 12px 12px;
 }
 
 .is-wall-2 {
   background-color: rgba(253, 244, 220, 0.5);
   background-image: repeating-linear-gradient(
-    45deg, rgba(23, 51, 15, 0.12) 0 6px, transparent 6px 12px);
+    45deg, rgba(48, 56, 64, 0.12) 0 6px, transparent 6px 12px);
 }
 
 .is-wall-3 {
   background-color: rgba(253, 244, 220, 0.5);
-  background-image: radial-gradient(rgba(23, 51, 15, 0.18) 2px, transparent 2px);
+  background-image: radial-gradient(rgba(48, 56, 64, 0.18) 2px, transparent 2px);
   background-size: 14px 14px;
 }
 
 .is-wall-4 {
   background-color: rgba(111, 196, 111, 0.35);
   background-image: repeating-linear-gradient(
-    90deg, rgba(23, 51, 15, 0.16) 0 3px, transparent 3px 16px);
+    90deg, rgba(48, 56, 64, 0.16) 0 3px, transparent 3px 16px);
 }
 
 .is-wall-5 {
   background-color: rgba(87, 176, 234, 0.3);
   background-image: repeating-linear-gradient(
-    0deg, rgba(23, 51, 15, 0.14) 0 2px, transparent 2px 12px);
+    0deg, rgba(48, 56, 64, 0.14) 0 2px, transparent 2px 12px);
 }
 
 .cbox-walls {
@@ -712,7 +716,7 @@
   width: 26px;
   height: 26px;
   cursor: pointer;
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.35);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.35);
 }
 
 .cbox-wall.is-on { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
@@ -734,8 +738,8 @@
   text-align: center;
   padding: 8px 6px 10px;
   cursor: pointer;
-  background: rgba(23, 51, 15, 0.08);
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.22);
+  background: rgba(48, 56, 64, 0.08);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.22);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -746,7 +750,7 @@
 .cbox-cell > span:not(.cbox-num):not(.cbox-pin) { font-size: 10px; color: var(--cbox-ink-soft); }
 
 .cbox-cell.is-active {
-  background: rgba(23, 51, 15, 0.18);
+  background: rgba(48, 56, 64, 0.18);
   box-shadow: inset 0 0 0 2px var(--cbox-ink);
 }
 
@@ -756,7 +760,7 @@
 .cbox-cell.is-sconosciuto {
   opacity: 0.4;
   cursor: default;
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.16);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.16);
 }
 .cbox-cell:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
 
@@ -764,8 +768,8 @@
   font-size: 9px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  background: var(--cbox-ink);
-  color: var(--cbox-screen);
+  background: var(--cbox-cyan);
+  color: #ffffff;
   padding: 1px 6px;
 }
 
@@ -798,7 +802,7 @@
   align-items: flex-start;
   margin-bottom: 16px;
   padding-bottom: 14px;
-  border-bottom: 2px solid rgba(23, 51, 15, 0.25);
+  border-bottom: 2px solid rgba(48, 56, 64, 0.25);
 }
 
 .cbox-card-art {
@@ -808,8 +812,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(23, 51, 15, 0.1);
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.28);
+  background: rgba(48, 56, 64, 0.1);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.28);
 }
 
 .cbox-card-art .cbox-art-img,
@@ -840,8 +844,8 @@
   border: 0;
   padding: 9px 10px;
   min-width: 150px;
-  background: rgba(23, 51, 15, 0.1);
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.3);
+  background: rgba(48, 56, 64, 0.1);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.3);
 }
 
 .cbox-input::placeholder { color: var(--cbox-ink-soft); }
@@ -855,9 +859,9 @@
   padding: 9px 13px;
   border-radius: 4px;
   cursor: pointer;
-  color: #fff3e2;
-  background: var(--cbox-shell);
-  box-shadow: 0 3px 0 var(--cbox-shell-dark);
+  color: #ffffff;
+  background: var(--cbox-teal);
+  box-shadow: 0 3px 0 var(--cbox-deep);
   text-decoration: none;
   display: inline-block;
   transition: transform 80ms linear, box-shadow 80ms linear;
@@ -865,14 +869,14 @@
 
 .cbox-btn:active {
   transform: translateY(3px);
-  box-shadow: 0 0 0 var(--cbox-shell-dark);
+  box-shadow: 0 0 0 var(--cbox-deep);
 }
 
 .cbox-btn[disabled] {
   opacity: 0.45;
   cursor: default;
   transform: none;
-  box-shadow: 0 3px 0 var(--cbox-shell-dark);
+  box-shadow: 0 3px 0 var(--cbox-deep);
 }
 
 .cbox-btn:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
@@ -890,8 +894,8 @@
   justify-content: space-between;
   gap: 10px;
   padding: 9px 10px;
-  background: rgba(23, 51, 15, 0.08);
-  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.2);
+  background: rgba(48, 56, 64, 0.08);
+  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.2);
 }
 
 .cbox-stat-label { color: var(--cbox-ink-soft); }
@@ -909,12 +913,12 @@
   justify-content: center;
   font-size: 10px;
   color: var(--cbox-ink-soft);
-  background: rgba(23, 51, 15, 0.08);
+  background: rgba(48, 56, 64, 0.08);
 }
 
 .cbox-day.is-done {
-  background: var(--cbox-accent);
-  color: var(--cbox-screen);
+  background: var(--cbox-cyan);
+  color: #ffffff;
 }
 
 .cbox-day.is-today {
@@ -996,3 +1000,72 @@
   .cbox-tab,
   .cbox-btn { transition: none; }
 }
+
+/* ============================================================
+   ELEMENTI CON LA GRAFICA DELLA PAGINA DATI
+   I file stanno in companion/dex/ e sono usati come cornici a nove
+   parti, cosi' si allargano senza deformarsi.
+   ============================================================ */
+
+/* fascia a bande: intestazioni di sezione */
+.cbox-dexbar {
+  border-image: none;
+  background-color: transparent;
+  background-image: url("companion/dex/heading.png");
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  color: #ffffff;
+  box-shadow: none;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* pannello turchese con bordo scuro */
+.cbox-party,
+.cbox-boxgrid {
+  border: 16px solid transparent;
+  border-image: url("companion/dex/frame.png") 16 fill stretch;
+  background: none;
+  box-shadow: none;
+  image-rendering: pixelated;
+}
+
+/* schede bianche arrotondate */
+.cbox-slot,
+.cbox-measure,
+.cbox-stat,
+.cbox-list {
+  border: 12px solid transparent;
+  border-image: url("companion/dex/card.png") 12 fill stretch;
+  background: none;
+  box-shadow: none;
+  image-rendering: pixelated;
+}
+
+/* riquadro del testo: la finestra dei messaggi originale */
+.cbox-dex {
+  border: 14px solid transparent;
+  border-image: url("companion/dex/messagebox.png") 14 30 fill stretch;
+  background: none;
+  box-shadow: none;
+  image-rendering: pixelated;
+  color: var(--cbox-ink);
+}
+
+/* cursore rosso sulla voce scelta */
+.cbox-listrow.is-selected {
+  position: relative;
+  background: none;
+  color: var(--cbox-ink);
+}
+
+.cbox-listrow.is-selected::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border: 14px solid transparent;
+  border-image: url("companion/dex/cursor.png") 14 stretch;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.cbox-listrow.is-selected .cbox-num { color: var(--cbox-ink-soft); opacity: 1; }
