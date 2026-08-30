@@ -62,20 +62,208 @@
 
 .cbox-panel {
   position: relative;
-  width: min(620px, 100%);
+  width: min(720px, 100%);
   max-height: min(760px, 100%);
-  display: flex;
-  flex-direction: column;
-  padding: 0 14px 14px;
-  border-radius: 14px 14px 10px 10px;
+  display: grid;
+  grid-template-columns: 1fr 104px;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px 16px 12px 12px;
   background:
-    linear-gradient(to bottom, var(--cbox-shell-light) 0, var(--cbox-shell) 74px, var(--cbox-shell) 100%);
+    linear-gradient(to bottom, var(--cbox-shell-light) 0, var(--cbox-shell) 90px, var(--cbox-shell) 100%);
   box-shadow:
     inset 0 -6px 0 rgba(0, 0, 0, 0.22),
     inset 0 3px 0 rgba(255, 255, 255, 0.22),
     0 10px 0 var(--cbox-shell-dark),
     0 10px 30px rgba(0, 0, 0, 0.4);
 }
+
+/* la cerniera che divide le due meta' */
+.cbox-panel::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  right: 116px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--cbox-shell-dark);
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.cbox-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.cbox-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+/* --- comandi sotto lo schermo: croce, altoparlante, tasto verde --- */
+
+.cbox-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 4px 4px;
+}
+
+.cbox-pad {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  flex: 0 0 auto;
+}
+
+.cbox-pad-btn {
+  position: absolute;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  width: 22px;
+  height: 22px;
+  font-size: 8px;
+  line-height: 22px;
+  color: rgba(255, 243, 226, 0.55);
+  background: #2b2622;
+  cursor: pointer;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.cbox-pad-btn.is-up    { top: 0;    left: 20px; border-radius: 4px 4px 0 0; }
+.cbox-pad-btn.is-down  { bottom: 0; left: 20px; border-radius: 0 0 4px 4px; }
+.cbox-pad-btn.is-left  { left: 0;   top: 20px;  border-radius: 4px 0 0 4px; }
+.cbox-pad-btn.is-right { right: 0;  top: 20px;  border-radius: 0 4px 4px 0; }
+
+.cbox-pad-btn:active { box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.4); }
+.cbox-pad-btn:focus-visible { outline: 3px solid #fff3e2; outline-offset: 1px; }
+
+.cbox-pad-center {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  width: 22px;
+  height: 22px;
+  background: #2b2622;
+}
+
+.cbox-grille {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.cbox-grille span {
+  display: block;
+  width: 4px;
+  height: 26px;
+  border-radius: 2px;
+  background: var(--cbox-shell-dark);
+  transform: skewX(-18deg);
+}
+
+.cbox-green {
+  appearance: none;
+  border: 0;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  color: rgba(23, 51, 15, 0.6);
+  background: var(--cbox-led-green);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.28), 0 3px 0 var(--cbox-shell-dark);
+}
+
+.cbox-green:active { transform: translateY(3px); box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.28); }
+.cbox-green:focus-visible { outline: 3px solid #fff3e2; outline-offset: 2px; }
+
+/* --- meta' destra: schermo corto, dieci tasti, tasti allungati --- */
+
+.cbox-sub {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  padding: 8px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--cbox-ink);
+  background: var(--cbox-screen);
+  box-shadow:
+    inset 0 0 0 2px var(--cbox-screen-dark),
+    0 0 0 4px var(--cbox-shell-dark);
+}
+
+.cbox-sub-label {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cbox-ink-soft);
+  margin-top: 4px;
+}
+
+.cbox-sub-label:first-child { margin-top: 0; }
+
+.cbox-sub b {
+  display: block;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+}
+
+.cbox-sub-big { font-size: 15px; }
+
+.cbox-keys {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.cbox-key {
+  appearance: none;
+  border: 0;
+  aspect-ratio: 1 / 1;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+  color: rgba(19, 42, 68, 0.55);
+  background: #7ec4ef;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.22);
+  opacity: 0.5;
+}
+
+.cbox-key.is-on { opacity: 1; color: #132a44; }
+.cbox-key:active { box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.22); }
+.cbox-key:focus-visible { outline: 3px solid #fff3e2; outline-offset: 2px; }
+
+.cbox-longs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: auto;
+  padding-bottom: 4px;
+}
+
+.cbox-long {
+  display: block;
+  height: 9px;
+  border-radius: 5px;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.cbox-long.is-red { background: #d0483c; }
+.cbox-long.is-white { background: #efe6d6; }
 
 /* --- testata: lente, spie, titolo --- */
 
@@ -209,6 +397,7 @@
 .cbox-body {
   position: relative;
   flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 16px;
   border-radius: 6px;
@@ -761,9 +950,32 @@
     height: 100%;
     max-height: 100%;
     border-radius: 0;
-    padding: 0 10px 10px;
+    padding: 8px;
+    grid-template-columns: 1fr;
     box-shadow: none;
   }
+
+  /* niente cerniera quando le due meta' si impilano */
+  .cbox-panel::after { display: none; }
+
+  .cbox-right {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding-top: 0;
+  }
+
+  .cbox-sub {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex: 1;
+    text-align: left;
+  }
+
+  .cbox-keys { display: none; }
+  .cbox-longs { flex-direction: row; margin: 0; }
+  .cbox-long { width: 26px; }
 
   .cbox-lens { width: 36px; height: 36px; }
   .cbox-led { width: 10px; height: 10px; }

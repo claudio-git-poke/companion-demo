@@ -121,12 +121,91 @@
     body.appendChild(viewScheda);
     body.appendChild(viewDiario);
 
-    panel.appendChild(head);
-    panel.appendChild(tabs);
-    panel.appendChild(body);
+    // --- meta' sinistra: schermo, altoparlante, comandi ---
+    var left = el('div', 'cbox-left');
+    left.appendChild(head);
+    left.appendChild(tabs);
+    left.appendChild(body);
+
+    var controls = el('div', 'cbox-controls');
+
+    var pad = el('div', 'cbox-pad');
+    [['up', '\u25B2', 'Su'], ['left', '\u25C0', 'Sinistra'],
+     ['right', '\u25B6', 'Destra'], ['down', '\u25BC', 'Giu']].forEach(function (d) {
+      var b = el('button', 'cbox-pad-btn is-' + d[0], d[1]);
+      b.type = 'button';
+      b.setAttribute('data-pad', d[0]);
+      b.setAttribute('aria-label', d[2]);
+      pad.appendChild(b);
+    });
+    pad.appendChild(el('span', 'cbox-pad-center'));
+    controls.appendChild(pad);
+
+    var grille = el('div', 'cbox-grille');
+    grille.setAttribute('aria-hidden', 'true');
+    for (var g = 0; g < 6; g++) grille.appendChild(el('span'));
+    controls.appendChild(grille);
+
+    var green = el('button', 'cbox-green', 'A');
+    green.type = 'button';
+    green.setAttribute('aria-label', 'Portalo con te');
+    controls.appendChild(green);
+
+    left.appendChild(controls);
+
+    // --- meta' destra: schermo corto e dieci tasti azzurri ---
+    var right = el('div', 'cbox-right');
+
+    var sub = el('div', 'cbox-sub');
+    sub.setAttribute('data-sub', '1');
+    right.appendChild(sub);
+
+    var keys = el('div', 'cbox-keys');
+    for (var k = 1; k <= 10; k++) {
+      var kb = el('button', 'cbox-key', String(k));
+      kb.type = 'button';
+      kb.setAttribute('data-key', String(k));
+      kb.setAttribute('aria-label', 'Voce numero ' + k);
+      keys.appendChild(kb);
+    }
+    right.appendChild(keys);
+
+    var longs = el('div', 'cbox-longs');
+    longs.setAttribute('aria-hidden', 'true');
+    longs.appendChild(el('span', 'cbox-long is-red'));
+    longs.appendChild(el('span', 'cbox-long is-white'));
+    right.appendChild(longs);
+
+    panel.appendChild(left);
+    panel.appendChild(right);
     root.appendChild(backdrop);
     root.appendChild(panel);
     document.body.appendChild(root);
+
+    // croce direzionale: scorre le voci del Dex o cambia scatola
+    pad.addEventListener('click', function (e) {
+      var dir = e.target.getAttribute && e.target.getAttribute('data-pad');
+      if (dir) movePad(dir);
+    });
+
+    green.addEventListener('click', function () {
+      var id = selectedId || Companion.getActive().id;
+      if (Companion.getActive().id === id) return;
+      var owned = false;
+      Companion.getDex().forEach(function (c) { if (c.id === id && c.owned) owned = true; });
+      if (owned) Companion.setActive(id);
+    });
+
+    keys.addEventListener('click', function (e) {
+      var n = e.target.getAttribute && e.target.getAttribute('data-key');
+      if (!n) return;
+      var entry = Companion.getDex()[Number(n) - 1];
+      if (entry && entry.owned) {
+        selectedId = entry.id;
+        showTab('squadra');
+        render();
+      }
+    });
 
     close.addEventListener('click', CompanionBox.close);
     backdrop.addEventListener('click', CompanionBox.close);
@@ -152,6 +231,59 @@
       });
 
     return root;
+  }
+
+  // Croce direzionale: nel Dex scorre l'elenco, nel Deposito cambia scatola.
+  function movePad(dir) {
+    var onDex = !root.querySelector('[data-view="squadra"]').classList.contains('is-off');
+
+    if (onDex) {
+      var dex = Companion.getDex().filter(function (c) { return c.owned; });
+      if (!dex.length) return;
+      var i = 0;
+      dex.forEach(function (c, index) { if (c.id === selectedId) i = index; });
+      if (dir === 'up' || dir === 'left') i -= 1;
+      if (dir === 'down' || dir === 'right') i += 1;
+      i = (i + dex.length) % dex.length;
+      selectedId = dex[i].id;
+      render();
+      return;
+    }
+
+    var onBox = !root.querySelector('[data-view="scheda"]').classList.contains('is-off');
+    if (onBox) {
+      var total = Companion.getBoxes().length;
+      if (dir === 'left' || dir === 'up') currentBox = (currentBox - 1 + total) % total;
+      if (dir === 'right' || dir === 'down') currentBox = (currentBox + 1) % total;
+      render();
+    }
+  }
+
+  // Lo schermo corto di destra: il riepilogo sempre sotto gli occhi.
+  function renderSub() {
+    var sub = root.querySelector('[data-sub]');
+    if (!sub) return;
+
+    var dexProgress = Companion.getDexProgress();
+    var streak = Companion.getStreak();
+
+    sub.innerHTML = '';
+    sub.appendChild(el('span', 'cbox-sub-label', 'Trovati'));
+    sub.appendChild(el('b', 'cbox-sub-big', dexProgress.owned + '/' + dexProgress.total));
+    sub.appendChild(el('span', 'cbox-sub-label', 'Streak'));
+    sub.appendChild(el('b', null, String(streak.streak)));
+    sub.appendChild(el('span', 'cbox-sub-label', 'Oggi'));
+    sub.appendChild(el('b', null, streak.progress));
+
+    // i tasti oltre il numero di voci restano spenti
+    var dex = Companion.getDex();
+    var keys = root.querySelectorAll('.cbox-key');
+    for (var i = 0; i < keys.length; i++) {
+      var entry = dex[i];
+      var on = !!(entry && entry.owned);
+      keys[i].disabled = !on;
+      keys[i].classList.toggle('is-on', on);
+    }
   }
 
   function showTab(id) {
@@ -606,6 +738,7 @@
     renderSquadra(root.querySelector('[data-view="squadra"]'));
     renderScheda(root.querySelector('[data-view="scheda"]'));
     renderDiario(root.querySelector('[data-view="diario"]'));
+    renderSub();
   }
 
   var CompanionBox = {
