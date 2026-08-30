@@ -242,6 +242,9 @@
         idle: 'companion/bulbasaur/idle.gif',
         happy: 'companion/bulbasaur/happy.gif'
       },
+      // Voce del catalogo: descrizione e indizio su dove si trova.
+      dex: 'Sta al sole tutto il giorno e si muove il minimo indispensabile. Il bulbo sulla schiena cresce insieme al suo affetto per te.',
+      where: 'Assegnato come primo companion.',
       lines: {
         idle:    ['...', 'sonnecchia al sole'],
         happy:   ['contento!', 'gli piace essere coccolato'],
@@ -266,6 +269,8 @@
         idle: 'companion/jolteon/idle.gif',
         happy: 'companion/jolteon/happy.gif'
       },
+      dex: 'Il pelo si carica da solo e resta dritto anche quando dorme. Se lo accarezzi troppo in fretta, prendi una piccola scossa.',
+      where: 'Si trova aprendo bustine.',
       lines: {
         idle:    ['...', 'il pelo si rizza da solo', 'sente un ronzio nell\'aria'],
         happy:   ['sprizza scintille corte', 'ti fa la scossa, ma piano'],
@@ -463,6 +468,14 @@
       ev.initCustomEvent(name, false, false, detail);
     }
     document.dispatchEvent(ev);
+  }
+
+  // Stato di una creatura nel catalogo: o ce l'hai, o e' un punto
+  // interrogativo. Nessuna via di mezzo.
+  //   'trovato'     posseduta
+  //   'sconosciuto' nessun dato
+  function dexStatus(id) {
+    return (state.owned && state.owned[id]) ? 'trovato' : 'sconosciuto';
   }
 
   // Nome da mostrare: il nomignolo scelto dall'utente, se c'e'.
@@ -2203,6 +2216,7 @@
           nickname: owned ? (state.owned[c.id].nickname || null) : null,
           displayName: owned ? displayName(c) : c.name,
           image: c.spriteImages ? (c.spriteImages.idle || null) : null,
+          status: dexStatus(c.id),
           pinned: state.pinnedId === c.id,
           pets: owned ? (state.owned[c.id].pets || 0) : 0,
           unlockedAt: owned ? (state.owned[c.id].unlockedAt || null) : null,
@@ -2247,6 +2261,47 @@
 
       var chosen = weightedPick(locked);
       return Companion.unlock(chosen.id);
+    },
+
+    /* Il catalogo completo, pronto da disegnare. Ogni voce ha:
+         number      numero di catalogo (1, 2, 3...)
+         status      'trovato' | 'sconosciuto'
+         name        null finche' non l'hai trovata
+         dex, where  testo della voce e indizio, solo se e' tua
+         image       percorso della GIF, solo se e' tua                  */
+    getDex: function () {
+      return ROSTER.map(function (c, i) {
+        var rec = state.owned[c.id];
+        var owned = !!rec;
+
+        return {
+          id: c.id,
+          number: i + 1,
+          status: owned ? 'trovato' : 'sconosciuto',
+          owned: owned,
+          name: owned ? c.name : null,
+          displayName: owned ? displayName(c) : null,
+          nickname: owned ? (rec.nickname || null) : null,
+          rarity: owned ? c.rarity : null,
+          dex: owned ? (c.dex || null) : null,
+          where: owned ? (c.where || null) : null,
+          image: owned ? (c.spriteImages ? (c.spriteImages.idle || null) : null) : null,
+          level: owned ? levelFor(rec.xp) : 0,
+          pets: owned ? (rec.pets || 0) : 0,
+          active: state.activeId === c.id,
+          pinned: state.pinnedId === c.id,
+          unlockedAt: owned ? (rec.unlockedAt || null) : null
+        };
+      });
+    },
+
+    /* Riepilogo del catalogo: quante ne hai trovate sul totale. */
+    getDexProgress: function () {
+      var owned = 0;
+      ROSTER.forEach(function (c) {
+        if (state.owned[c.id]) owned += 1;
+      });
+      return { owned: owned, total: ROSTER.length };
     },
 
     /* --- manutenzione --- */

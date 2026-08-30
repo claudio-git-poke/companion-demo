@@ -256,7 +256,40 @@
   color: var(--cbox-ink-soft);
 }
 
-/* --- griglia della squadra --- */
+/* --- riepilogo del catalogo --- */
+
+.cbox-dexbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  column-gap: 16px;
+  row-gap: 4px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cbox-ink);
+  background: rgba(23, 51, 15, 0.12);
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.28);
+}
+
+/* --- voce del catalogo --- */
+
+.cbox-dex {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: rgba(23, 51, 15, 0.07);
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.18);
+}
+
+.cbox-hint {
+  margin: 0 0 16px;
+  font-size: 12px;
+}
+
+/* --- griglia del catalogo --- */
 
 .cbox-grid {
   display: grid;
@@ -289,7 +322,13 @@
 }
 
 .cbox-cell.is-selected { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
-.cbox-cell.is-locked { opacity: 0.42; cursor: default; }
+
+/* non ancora trovata: casella spenta, non cliccabile */
+.cbox-cell.is-sconosciuto {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.16);
+}
 .cbox-cell:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
 
 .cbox-pin {

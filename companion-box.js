@@ -98,7 +98,7 @@
 
     var tabs = el('div', 'cbox-tabs');
     var tabNames = [
-      { id: 'squadra', label: 'Squadra' },
+      { id: 'squadra', label: 'Catalogo' },
       { id: 'scheda', label: 'Scheda' },
       { id: 'diario', label: 'Diario' }
     ];
@@ -169,8 +169,39 @@
      3. SQUADRA
      ---------------------------------------------------------- */
 
+  // Disegna la creatura dentro una cella: immagine se e' tua, punto
+  // interrogativo se non l'hai ancora trovata.
+  function artFor(entry, size) {
+    var art = el('div', 'cbox-art');
+
+    if (!entry.owned) {
+      art.appendChild(el('span', 'cbox-art-unknown', '?'));
+      return art;
+    }
+
+    if (entry.image) {
+      var img = el('img', 'cbox-art-img');
+      img.src = entry.image;
+      img.alt = '';
+      art.appendChild(img);
+    } else {
+      var cv = el('canvas', 'cbox-art-canvas');
+      cv.width = 16 * size;
+      cv.height = 16 * size;
+      Companion.drawTo(cv.getContext('2d'), { creatureId: entry.id, scale: size });
+      art.appendChild(cv);
+    }
+    return art;
+  }
+
   function renderSquadra(view) {
     view.innerHTML = '';
+
+    var progress = Companion.getDexProgress();
+    var bar = el('div', 'cbox-dexbar');
+    bar.appendChild(el('span', null, 'Catalogo'));
+    bar.appendChild(el('b', null, 'Trovati ' + progress.owned + ' su ' + progress.total));
+    view.appendChild(bar);
 
     var day = Companion.getDayCompanion();
     var intro = el('p', 'cbox-note');
@@ -182,35 +213,16 @@
     view.appendChild(intro);
 
     var grid = el('div', 'cbox-grid');
-    var roster = Companion.getRoster();
 
-    roster.forEach(function (c, index) {
-      var cell = el('button', 'cbox-cell' + (c.owned ? '' : ' is-locked'));
+    Companion.getDex().forEach(function (c) {
+      var cell = el('button', 'cbox-cell is-' + c.status);
       cell.type = 'button';
-      cell.disabled = !c.owned;
+      cell.disabled = c.status === 'sconosciuto';
       if (c.active) cell.classList.add('is-active');
       if (c.id === selectedId) cell.classList.add('is-selected');
 
-      var art = el('div', 'cbox-art');
-      if (c.owned) {
-        if (c.image) {
-          var img = el('img', 'cbox-art-img');
-          img.src = c.image;
-          img.alt = '';
-          art.appendChild(img);
-        } else {
-          var cv = el('canvas', 'cbox-art-canvas');
-          cv.width = 16 * 3;
-          cv.height = 16 * 3;
-          Companion.drawTo(cv.getContext('2d'), { creatureId: c.id, scale: 3 });
-          art.appendChild(cv);
-        }
-      } else {
-        art.appendChild(el('span', 'cbox-art-unknown', '?'));
-      }
-
-      cell.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(index + 1)));
-      cell.appendChild(art);
+      cell.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(c.number)));
+      cell.appendChild(artFor(c, 3));
       cell.appendChild(el('b', null, c.owned ? c.displayName : '???'));
       cell.appendChild(el('span', null, c.owned ? ('liv. ' + c.level) : 'da trovare'));
       if (c.pinned) cell.appendChild(el('span', 'cbox-pin', 'fissato'));
@@ -237,43 +249,53 @@
     var active = Companion.getActive();
     var id = selectedId || active.id;
     var entry = null;
-    Companion.getRoster().forEach(function (c) { if (c.id === id) entry = c; });
+    Companion.getDex().forEach(function (c) { if (c.id === id) entry = c; });
 
-    if (!entry || !entry.owned) {
-      view.appendChild(el('p', 'cbox-note', 'Scegli un companion dalla squadra.'));
+    if (!entry) {
+      view.appendChild(el('p', 'cbox-note', 'Scegli una voce dal catalogo.'));
+      return;
+    }
+
+    // Non ancora trovata: nessun dato da mostrare.
+    if (!entry.owned) {
+      var vuoto = el('div', 'cbox-card');
+      vuoto.appendChild(artFor(entry, 5));
+      var vi = el('div', 'cbox-card-info');
+      vi.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(entry.number)));
+      vi.appendChild(el('h3', null, '???'));
+      vi.appendChild(el('p', 'cbox-note', 'Nessun dato. Continua ad aprire bustine.'));
+      vuoto.appendChild(vi);
+      view.appendChild(vuoto);
       return;
     }
 
     var card = el('div', 'cbox-card');
 
     var art = el('div', 'cbox-card-art');
-    if (entry.image) {
-      var img = el('img', 'cbox-art-img');
-      img.src = entry.image;
-      img.alt = '';
-      art.appendChild(img);
-    } else {
-      var cv = el('canvas', 'cbox-art-canvas');
-      cv.width = 16 * 5;
-      cv.height = 16 * 5;
-      Companion.drawTo(cv.getContext('2d'), { creatureId: entry.id, scale: 5 });
-      art.appendChild(cv);
-    }
+    art.appendChild(artFor(entry, 5).firstChild);
     card.appendChild(art);
 
-    var position = 0;
-    Companion.getRoster().forEach(function (c, i) { if (c.id === id) position = i + 1; });
-
     var info = el('div', 'cbox-card-info');
-    info.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(position)));
+    info.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(entry.number)));
     info.appendChild(el('h3', null, entry.displayName));
+
     info.appendChild(el('p', 'cbox-note',
       (entry.nickname ? entry.name + ' · ' : '') + entry.rarity +
       ' · livello affetto ' + entry.level));
     info.appendChild(el('p', 'cbox-note',
       entry.pets + ' coccole · con te dal ' + formatDate(entry.unlockedAt)));
+
     card.appendChild(info);
     view.appendChild(card);
+
+    // Voce del catalogo e provenienza.
+    if (entry.dex) view.appendChild(el('p', 'cbox-dex', entry.dex));
+    if (entry.where) {
+      var hint = el('p', 'cbox-hint');
+      hint.appendChild(el('span', 'cbox-num', 'Dove si trova'));
+      hint.appendChild(el('span', null, ' ' + entry.where));
+      view.appendChild(hint);
+    }
 
     // rinomina
     var renameRow = el('div', 'cbox-row');
