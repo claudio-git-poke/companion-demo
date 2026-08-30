@@ -137,6 +137,24 @@
   </section>
 
   <section>
+    <h2>Widget</h2>
+    <p class="sub" style="margin:0 0 12px">
+      Il companion si puo' togliere dalla schermata con la crocetta accanto a lui:
+      la scelta resta anche dopo aver ricaricato la pagina.
+    </p>
+    <div>
+      <button class="act" data-do="hide-widget">Togli dalla schermata</button>
+      <button class="act" data-do="show-widget">Rimettilo</button>
+      <button class="act" data-do="tokens-demo">Prova gli oggetti (segnaposto)</button>
+    </div>
+    <p class="sub" style="margin:12px 0 0">
+      Gli oggetti veri si impostano con
+      <code>Companion.init({ petTokenImages: [...] })</code>: cinque percorsi di
+      immagini, uno per ogni coccola della giornata.
+    </p>
+  </section>
+
+  <section>
     <h2>Squadra</h2>
     <div class="roster" id="roster"></div>
   </section>
@@ -258,8 +276,22 @@
     refreshStreak();
   }
 
+  // Cinque quadratini colorati generati al volo: servono solo a vedere come
+  // si accumulano gli oggetti prima di avere le immagini vere.
+  function useDemoTokens() {
+    var colors = ['#e8546a', '#f2a03d', '#ffd83d', '#5fbf6a', '#59b6e8'];
+    var srcs = colors.map(function (c) {
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">' +
+                '<rect width="16" height="16" fill="' + c + '"/>' +
+                '<rect x="1" y="1" width="14" height="14" fill="none" stroke="#241d16" stroke-width="2"/></svg>';
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    });
+    Companion.init({ corner: 'bottom-right', size: 4, petTokenImages: srcs });
+    refresh();
+  }
+
   ['assigned', 'pet', 'reward', 'levelup', 'unlocked', 'changed',
-   'streak', 'streakbroken', 'bonus'].forEach(function (name) {
+   'streak', 'streakbroken', 'bonus', 'visibility', 'synced'].forEach(function (name) {
     document.addEventListener('companion:' + name, function (e) {
       log('companion:' + name + '  ' + JSON.stringify(e.detail));
       refresh();
@@ -275,6 +307,9 @@
     if (act === 'almost') { Companion.dev.setDailyPets(4); log('coccole di oggi: 4 su 5'); }
     if (act === 'streak6') { Companion.dev.setStreak(6); log('streak a 6, chiusa ieri: completando oggi arrivi a 7'); }
     if (act === 'break') { Companion.dev.breakStreak(); log('streak spezzata'); }
+    if (act === 'hide-widget') { Companion.hideWidget(); log('companion tolto dalla schermata'); }
+    if (act === 'show-widget') { Companion.showWidget(); log('companion rimesso in schermata'); }
+    if (act === 'tokens-demo') { useDemoTokens(); log('oggetti segnaposto attivati'); }
 
     if (act === 'drop') {
       var d = Companion.rollDrop(1);
