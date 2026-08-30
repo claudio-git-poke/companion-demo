@@ -207,6 +207,7 @@
     <h2>Prove</h2>
     <button class="act" data-do="drop">Tira un drop (100%)</button>
     <button class="act" data-do="unlock-bulbasaur">Sblocca bulbasaur (prova)</button>
+    <button class="act" data-do="unlock-jolteon">Sblocca jolteon (prova)</button>
     <button class="act" data-do="excited">Fallo esultare</button>
     <button class="act" data-do="say">Fagli dire qualcosa</button>
     <button class="act" data-do="reset">Azzera tutto</button>
@@ -225,14 +226,15 @@
   </section>
 
   <section>
-    <h2>Sprite a immagine (bulbasaur)</h2>
+    <h2>Sprite a immagine (bulbasaur e jolteon)</h2>
     <p class="sub" style="margin:0 0 12px">
-      Usa automaticamente le GIF di bulbasaur (companion/bulbasaur/idle.gif e
-      companion/bulbasaur/happy.gif) tramite spriteImages, senza passare imageMap a mano.
+      Usa automaticamente le GIF della creatura attiva (companion/bulbasaur/ o
+      companion/jolteon/) tramite spriteImages, senza passare imageMap a mano.
+      Per vedere jolteon, sbloccalo qui sopra e sceglilo nella Squadra.
     </p>
     <div id="stage-gif" style="display:flex;align-items:flex-end;justify-content:center;min-height:120px;background:rgba(0,0,0,0.05)"></div>
     <div style="margin-top:12px">
-      <button class="act" data-do="mount-gif">Mostra bulbasaur</button>
+      <button class="act" data-do="mount-gif">Mostra la creatura attiva</button>
       <button class="act" data-do="unmount-gif">Nascondi</button>
     </div>
   </section>
@@ -421,6 +423,10 @@
     if (act === 'unlock-bulbasaur') {
       var u = Companion.unlock('bulbasaur');
       log(u.duplicate ? 'bulbasaur gia\' sbloccato' : 'bulbasaur sbloccato!');
+    }
+    if (act === 'unlock-jolteon') {
+      var j = Companion.unlock('jolteon');
+      log(j.duplicate ? 'jolteon gia\' sbloccato' : 'jolteon sbloccato!');
     }
     if (act === 'excited') Companion.react('excited', 1600);
     if (act === 'say') Companion.say('Pronto per la bustina!', 2600);

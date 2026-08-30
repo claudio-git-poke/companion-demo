@@ -322,6 +322,30 @@
         sad:     ['si sente trascurato', 'ti aspettava'],
         sleepy:  ['sta sonnecchiando', 'zzz...']
       }
+    },
+    {
+      // Jolteon: seconda creatura reale con GIF per posa (idle, happy).
+      // I file vanno in companion/jolteon/. Finche' non ci sono, al suo
+      // posto compare fallbackImage.
+      //
+      // Oggi si trova solo con i drop: per renderlo assegnabile anche come
+      // primo companion, metti startingEligible a true.
+      id: 'jolteon',
+      name: 'Jolteon',
+      rarity: 'raro',
+      weight: 14,
+      startingEligible: false,
+      spriteImages: {
+        idle: 'companion/jolteon/idle.gif',
+        happy: 'companion/jolteon/happy.gif'
+      },
+      lines: {
+        idle:    ['...', 'il pelo si rizza da solo', 'sente un ronzio nell\'aria'],
+        happy:   ['sprizza scintille corte', 'ti fa la scossa, ma piano'],
+        excited: ['parte come un fulmine!', 'e\' tutto elettrico!'],
+        sad:     ['ha il pelo giu\'', 'ti aspettava'],
+        sleepy:  ['si e\' acciambellato', 'zzz...']
+      }
     }
   ];
 
