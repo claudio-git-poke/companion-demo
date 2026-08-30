@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Companion — banco di prova</title>
 <link rel="stylesheet" href="companion.css">
+<link rel="stylesheet" href="companion-box.css">
 <style>
   :root {
     --ink: #241d16;
@@ -137,6 +138,17 @@
   </section>
 
   <section>
+    <h2>Box e companion del giorno</h2>
+    <div class="streak-line" id="day-line">—</div>
+    <div style="margin-top:12px">
+      <button class="act" data-do="box">Apri il box</button>
+      <button class="act" data-do="unlock-all">Sblocca tutti (per provare)</button>
+      <button class="act" data-do="next-day">Fai passare un giorno</button>
+      <button class="act" data-do="unpin">Torna alla rotazione</button>
+    </div>
+  </section>
+
+  <section>
     <h2>Streak avanzata</h2>
     <div class="streak-line" id="streak-extra">—</div>
     <div style="margin-top:12px">
@@ -232,6 +244,7 @@
 </main>
 
 <script src="companion.js"></script>
+<script src="companion-box.js"></script>
 <script>
 (function () {
   Companion.init({ corner: 'bottom-right', size: 4 });
@@ -263,6 +276,14 @@
   function refreshStreak() {
     var s = Companion.getStreak();
     dotsEl.textContent = s.progress;
+
+    var dayLine = document.getElementById('day-line');
+    if (dayLine) {
+      var d = Companion.getDayCompanion();
+      dayLine.innerHTML = d
+        ? ('Oggi tocca a <b>' + d.displayName + '</b>' + (d.pinned ? ' (fissato)' : ' · domani cambia'))
+        : '—';
+    }
 
     var extra = document.getElementById('streak-extra');
     if (extra) {
@@ -333,7 +354,8 @@
   ['assigned', 'pet', 'reward', 'levelup', 'unlocked', 'changed',
    'streak', 'streakbroken', 'bonus', 'visibility', 'synced',
    'renamed', 'appeared', 'milestone', 'token', 'recovered',
-   'welcomeback', 'reminder', 'nudge', 'nudgeaction'].forEach(function (name) {
+   'welcomeback', 'reminder', 'nudge', 'nudgeaction',
+   'dayCompanion', 'pinned'].forEach(function (name) {
     document.addEventListener('companion:' + name, function (e) {
       log('companion:' + name + '  ' + JSON.stringify(e.detail));
       refresh();
@@ -349,6 +371,13 @@
     if (act === 'almost') { Companion.dev.setDailyPets(4); log('coccole di oggi: 4 su 5'); }
     if (act === 'streak6') { Companion.dev.setStreak(6); log('streak a 6, chiusa ieri: completando oggi arrivi a 7'); }
     if (act === 'break') { Companion.dev.breakStreak(); log('streak spezzata'); }
+    if (act === 'box') CompanionBox.open();
+    if (act === 'unlock-all') {
+      Companion.getRoster().forEach(function (c) { if (!c.owned) Companion.unlock(c.id); });
+      log('tutti sbloccati');
+    }
+    if (act === 'next-day') { Companion.dev.nextDay(); log('giorno successivo: ' + Companion.getDayCompanion().displayName + ' e\' il companion di oggi'); }
+    if (act === 'unpin') { Companion.unpin(); log('rotazione riattivata'); }
     if (act === 'skip-day') { Companion.dev.skipDay(); log('ultima giornata chiusa: l\'altro ieri'); }
     if (act === 'add-token') { Companion.dev.setTokens(Companion.getStreak().tokens + 1); log('gettoni: ' + Companion.getStreak().tokens); }
     if (act === 'milestone') {

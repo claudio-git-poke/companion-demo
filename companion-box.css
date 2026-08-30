@@ -1,0 +1,355 @@
+/* ============================================================
+   COMPANION BOX — stile del deposito
+   Progetto: cardsync-pocket-repo
+
+   Stesso linguaggio del widget: carta chiara, inchiostro scuro,
+   bordi a scalini senza raggi, niente ombre morbide.
+
+   Variabili sovrascrivibili dal tuo CSS globale:
+     --cbox-z       livello di sovrapposizione (default 80)
+     --cbox-ink     colore testo e bordi
+     --cbox-paper   sfondo dei pannelli
+     --cbox-page    sfondo della finestra
+     --cbox-accent  colore dei giorni completati
+   ============================================================ */
+
+.cbox {
+  --cbox-z: 80;
+  --cbox-ink: #241d16;
+  --cbox-paper: #fdf4dc;
+  --cbox-page: #efe6cf;
+  --cbox-accent: #5fbf6a;
+
+  position: fixed;
+  inset: 0;
+  z-index: var(--cbox-z);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--cbox-ink);
+}
+
+.cbox.is-hidden { display: none; }
+
+.cbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(36, 29, 22, 0.55);
+}
+
+.cbox-panel {
+  position: relative;
+  width: min(620px, 100%);
+  max-height: min(720px, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--cbox-page);
+  box-shadow:
+     0 -4px 0 0 var(--cbox-ink),
+     0  4px 0 0 var(--cbox-ink),
+    -4px 0 0 0 var(--cbox-ink),
+     4px 0 0 0 var(--cbox-ink);
+}
+
+/* --- testata --- */
+
+.cbox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--cbox-ink);
+  color: var(--cbox-page);
+}
+
+.cbox-title {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.cbox-close {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.cbox-close:focus-visible {
+  outline: 3px solid var(--cbox-page);
+  outline-offset: 2px;
+}
+
+/* --- schede --- */
+
+.cbox-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 10px 12px 0;
+}
+
+.cbox-tab {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 9px 12px;
+  cursor: pointer;
+  color: var(--cbox-ink);
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.cbox-tab.is-on {
+  background: var(--cbox-paper);
+  box-shadow: 0 -3px 0 0 var(--cbox-ink), -3px 0 0 0 var(--cbox-ink), 3px 0 0 0 var(--cbox-ink);
+}
+
+.cbox-tab:focus-visible {
+  outline: 3px solid var(--cbox-ink);
+  outline-offset: -3px;
+}
+
+/* --- corpo --- */
+
+.cbox-body {
+  flex: 1;
+  overflow: auto;
+  margin: 0 12px 12px;
+  padding: 16px;
+  background: var(--cbox-paper);
+  box-shadow:
+     0 -3px 0 0 var(--cbox-ink),
+     0  3px 0 0 var(--cbox-ink),
+    -3px 0 0 0 var(--cbox-ink),
+     3px 0 0 0 var(--cbox-ink);
+}
+
+.cbox-view.is-off { display: none; }
+
+.cbox-note {
+  margin: 0 0 14px;
+  opacity: 0.7;
+}
+
+.cbox-subtitle {
+  margin: 22px 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* --- griglia della squadra --- */
+
+.cbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.cbox-cell {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  padding: 10px 6px;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.cbox-cell b { font-size: 12px; }
+.cbox-cell span { font-size: 10px; opacity: 0.7; }
+
+.cbox-cell.is-active { background: rgba(0, 0, 0, 0.14); }
+.cbox-cell.is-selected { box-shadow: 0 0 0 3px var(--cbox-ink); }
+.cbox-cell.is-locked { opacity: 0.45; cursor: default; }
+
+.cbox-cell:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
+
+.cbox-pin {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--cbox-ink);
+  color: var(--cbox-paper);
+  padding: 1px 5px;
+}
+
+.cbox-art {
+  height: 48px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.cbox-art-img,
+.cbox-art-canvas {
+  display: block;
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.cbox-art-unknown {
+  font-size: 22px;
+  opacity: 0.5;
+}
+
+/* --- scheda del singolo --- */
+
+.cbox-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.cbox-card-art {
+  flex: 0 0 auto;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.cbox-card-art .cbox-art-img,
+.cbox-card-art .cbox-art-canvas {
+  width: 80px;
+  height: 80px;
+}
+
+.cbox-card-info h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.cbox-card-info .cbox-note { margin-bottom: 4px; }
+
+.cbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cbox-input {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  padding: 9px 10px;
+  min-width: 150px;
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.cbox-input:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: -3px; }
+
+.cbox-btn {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  padding: 9px 12px;
+  cursor: pointer;
+  color: var(--cbox-paper);
+  background: var(--cbox-ink);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.cbox-btn[disabled] { opacity: 0.4; cursor: default; }
+.cbox-btn:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
+
+/* --- diario --- */
+
+.cbox-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.cbox-stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.cbox-stat-label { opacity: 0.7; }
+
+.cbox-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cbox-day {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.06);
+  opacity: 0.75;
+}
+
+.cbox-day.is-done {
+  background: var(--cbox-accent);
+  color: var(--cbox-ink);
+  opacity: 1;
+}
+
+.cbox-day.is-today {
+  box-shadow: inset 0 0 0 2px var(--cbox-ink);
+  opacity: 1;
+}
+
+.cbox-postcard {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cbox-postcard-img {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 3px var(--cbox-ink);
+}
+
+/* --- schermi piccoli --- */
+
+@media (max-width: 480px) {
+  .cbox { padding: 0; }
+
+  .cbox-panel {
+    width: 100%;
+    max-height: 100%;
+    height: 100%;
+  }
+
+  .cbox-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+}

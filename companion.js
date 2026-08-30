@@ -39,6 +39,11 @@
     petTokenImages: [],
     petTokenSize: 16,         // lato in px di ogni oggetto
 
+    // --- Companion del giorno ---
+    // Con piu' di un companion posseduto, ogni giorno ne tocca uno diverso,
+    // a meno che l'utente non ne fissi uno con Companion.pin(id).
+    dailyCompanion: true,
+
     // --- Gettone di recupero ---
     // Copre un giorno saltato: se ne guadagna uno ogni recoveryTokenEvery
     // giorni di streak, fino a recoveryTokenMax. Copre un solo giorno per
@@ -601,6 +606,8 @@
   var state = null;
   var started = false;
   var pendingAppear = false;   // primo companion in attesa della comparsa
+  var dev_offset = 0;          // scarto di tempo usato solo dalle prove
+  var devBaseClock = null;     // orologio vero, prima dello scarto di prova
 
   function blankState() {
     return {
@@ -630,7 +637,11 @@
       longestStreak: 0,
       totalDays: 0,          // giornate completate in tutto
       lastWelcomeDay: null,  // ultimo giorno in cui ha fatto festa al rientro
-      reminder: false        // promemoria serale attivo
+      reminder: false,       // promemoria serale attivo
+
+      pinnedId: null,        // companion fissato dall'utente
+      dayCompanionId: null,  // companion di oggi
+      dayCompanionDay: null  // giorno a cui si riferisce
     };
   }
 
@@ -784,7 +795,67 @@
       }
     }
 
+    rotateDayCompanion();
+
     if (changed) persist();
+  }
+
+  // Numero stabile ricavato da una stringa: lo stesso giorno da' lo stesso
+  // companion su tutti i dispositivi, senza doverlo sincronizzare.
+  function hashString(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) {
+      h = ((h << 5) - h) + str.charCodeAt(i);
+      h |= 0;
+    }
+    return Math.abs(h);
+  }
+
+  // Sceglie di chi e' il turno oggi. Il companion fissato vince sempre.
+  function rotateDayCompanion() {
+    if (!cfg.dailyCompanion) return;
+
+    var day = todayKey();
+    if (state.dayCompanionDay === day) return;
+
+    var ids = [];
+    for (var id in state.owned) {
+      if (Object.prototype.hasOwnProperty.call(state.owned, id) && getCreature(id)) ids.push(id);
+    }
+    if (!ids.length) return;
+
+    var previous = state.dayCompanionId;
+    state.dayCompanionDay = day;
+
+    if (state.pinnedId && state.owned[state.pinnedId]) {
+      state.dayCompanionId = state.pinnedId;
+    } else if (ids.length === 1) {
+      state.dayCompanionId = ids[0];
+    } else {
+      // Evita di ripetere quello di ieri.
+      var pool = ids.filter(function (x) { return x !== previous; });
+      if (!pool.length) pool = ids;
+      pool.sort();
+      state.dayCompanionId = pool[hashString(day) % pool.length];
+    }
+
+    var switched = state.activeId !== state.dayCompanionId;
+    state.activeId = state.dayCompanionId;
+
+    if (switched) {
+      var chosen = state.dayCompanionId;
+      var pinned = !!state.pinnedId;
+      setTimeout(function () {
+        var c = getCreature(chosen);
+        if (widget) widget.refresh();
+        emit('companion:dayCompanion', {
+          id: chosen,
+          name: c ? c.name : chosen,
+          displayName: c ? displayName(c) : chosen,
+          pinned: pinned
+        });
+      }, 0);
+    }
   }
 
   function isGoalDone() {
@@ -1957,6 +2028,101 @@
       return w;
     },
 
+    /* Fissa un companion: da oggi in poi resta lui, niente rotazione. */
+    pin: function (id) {
+      if (!getCreature(id) || !state.owned[id]) return false;
+      state.pinnedId = id;
+      state.dayCompanionDay = null;   // forza il ricalcolo
+      rotateDayCompanion();
+      state.activeId = id;
+      persist();
+      if (widget) widget.refresh();
+      emit('companion:pinned', { id: id, pinned: true });
+      return true;
+    },
+
+    /* Torna alla rotazione giornaliera. */
+    unpin: function () {
+      state.pinnedId = null;
+      state.dayCompanionDay = null;
+      rotateDayCompanion();
+      persist();
+      if (widget) widget.refresh();
+      emit('companion:pinned', { id: null, pinned: false });
+      return true;
+    },
+
+    getPinned: function () {
+      return state.pinnedId || null;
+    },
+
+    /* Di chi e' il turno oggi. */
+    getDayCompanion: function () {
+      rollDay();
+      var c = getCreature(state.dayCompanionId || state.activeId);
+      if (!c) return null;
+      return {
+        id: c.id,
+        name: c.name,
+        displayName: displayName(c),
+        pinned: state.pinnedId === c.id
+      };
+    },
+
+    /* Ultimi N giorni con l'indicazione di quelli completati: pronto da
+       disegnare come calendario. Il piu' recente e' l'ultimo. */
+    getCalendar: function (days) {
+      var n = days || 35;
+      var done = {};
+      var history = state.history || [];
+      for (var h = 0; h < history.length; h++) done[history[h]] = true;
+
+      var out = [];
+      for (var i = n - 1; i >= 0; i--) {
+        var key = dayKeyOffset(-i);
+        out.push({ key: key, done: !!done[key], today: i === 0 });
+      }
+      return out;
+    },
+
+    /* Disegna il companion su un canvas qualsiasi: serve per la cartolina.
+       Per le creature a GIF passa un'immagine gia' caricata in options.image
+       (il percorso e' in getActive().image). */
+    drawTo: function (ctx, options) {
+      options = options || {};
+      var creature = getCreature(options.creatureId || state.activeId);
+      if (!ctx || !creature) return false;
+
+      var scale = options.scale || 4;
+      var x = options.x || 0;
+      var y = options.y || 0;
+
+      ctx.imageSmoothingEnabled = false;
+
+      if (creature.spriteImages || creature.spriteGif) {
+        var img = options.image || (widget && widget.sprite && widget.sprite.img);
+        if (!img || img.complete === false) return false;
+        try {
+          ctx.drawImage(img, x, y, 16 * scale, 16 * scale);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      var grid = buildGrid(creature, options.pose || 'idle');
+      var palette = PALETTES[creature.palette];
+      for (var r = 0; r < grid.length; r++) {
+        for (var c = 0; c < grid[r].length; c++) {
+          var color = palette[grid[r][c]];
+          if (!color) continue;
+          ctx.fillStyle = color;
+          ctx.fillRect(x + c * scale, y + r * scale, scale, scale);
+        }
+      }
+      return true;
+    },
+
     /* Nomignolo scelto dall'utente. Stringa vuota = torna al nome originale. */
     setNickname: function (id, nickname) {
       var creature = getCreature(id);
@@ -2001,6 +2167,8 @@
         name: creature.name,
         nickname: rec.nickname || null,
         displayName: displayName(creature),
+        image: creature.spriteImages ? (creature.spriteImages.idle || null) : null,
+        pinned: state.pinnedId === creature.id,
         rarity: creature.rarity,
         palette: PALETTES[creature.palette],
         xp: rec.xp,
@@ -2052,6 +2220,10 @@
           name: c.name,
           nickname: owned ? (state.owned[c.id].nickname || null) : null,
           displayName: owned ? displayName(c) : c.name,
+          image: c.spriteImages ? (c.spriteImages.idle || null) : null,
+          pinned: state.pinnedId === c.id,
+          pets: owned ? (state.owned[c.id].pets || 0) : 0,
+          unlockedAt: owned ? (state.owned[c.id].unlockedAt || null) : null,
           rarity: c.rarity,
           owned: owned,
           active: state.activeId === c.id,
@@ -2160,6 +2332,16 @@
         persist();
         if (widget) widget.welcomeBack();
         return n;
+      },
+      /* Fa passare un giorno: utile per vedere la rotazione del companion
+         del giorno senza aspettare domani. */
+      nextDay: function () {
+        if (!devBaseClock) devBaseClock = clock.now;
+        dev_offset += 86400000;
+        clock.now = function () { return devBaseClock() + dev_offset; };
+        rollDay();
+        if (widget) { widget.refresh(); widget.syncStatus(); }
+        return Companion.getDayCompanion();
       },
       /* Fa scattare subito il promemoria serale. */
       fireReminder: function () {
