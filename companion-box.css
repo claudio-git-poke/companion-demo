@@ -1,24 +1,41 @@
 /* ============================================================
-   COMPANION BOX — stile del deposito
+   COMPANION BOX — stile Pokedex
    Progetto: cardsync-pocket-repo
 
-   Stesso linguaggio del widget: carta chiara, inchiostro scuro,
-   bordi a scalini senza raggi, niente ombre morbide.
+   L'idea: una scocca rossa da apparecchio portatile, con lente e
+   spie in testa, che contiene uno schermo a cristalli liquidi verde.
+   Tutto cio' che e' "apparecchio" ha angoli morbidi e rilievo;
+   tutto cio' che sta "dentro lo schermo" resta squadrato e pixelato,
+   come il resto del gioco.
 
    Variabili sovrascrivibili dal tuo CSS globale:
-     --cbox-z       livello di sovrapposizione (default 80)
-     --cbox-ink     colore testo e bordi
-     --cbox-paper   sfondo dei pannelli
-     --cbox-page    sfondo della finestra
-     --cbox-accent  colore dei giorni completati
+     --cbox-z         livello di sovrapposizione (default 80)
+     --cbox-shell     rosso della scocca
+     --cbox-screen    verde dello schermo
+     --cbox-ink       inchiostro sullo schermo
+     --cbox-accent    giorni completati nel calendario
    ============================================================ */
 
 .cbox {
   --cbox-z: 80;
-  --cbox-ink: #241d16;
-  --cbox-paper: #fdf4dc;
-  --cbox-page: #efe6cf;
-  --cbox-accent: #5fbf6a;
+
+  /* scocca */
+  --cbox-shell: #c0392f;
+  --cbox-shell-dark: #7d211b;
+  --cbox-shell-light: #e2604f;
+
+  /* schermo */
+  --cbox-screen: #b9cc5a;
+  --cbox-screen-dark: #8fa441;
+  --cbox-ink: #17330f;
+  --cbox-ink-soft: rgba(23, 51, 15, 0.62);
+  --cbox-accent: #2f6b2b;
+
+  /* spie */
+  --cbox-lens: #57b0ea;
+  --cbox-led-red: #e0574a;
+  --cbox-led-yellow: #f2c14e;
+  --cbox-led-green: #6fc46f;
 
   position: fixed;
   inset: 0;
@@ -38,124 +55,212 @@
 .cbox-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(36, 29, 22, 0.55);
+  background: rgba(20, 14, 10, 0.62);
 }
+
+/* --- la scocca --- */
 
 .cbox-panel {
   position: relative;
   width: min(620px, 100%);
-  max-height: min(720px, 100%);
+  max-height: min(760px, 100%);
   display: flex;
   flex-direction: column;
-  background: var(--cbox-page);
+  padding: 0 14px 14px;
+  border-radius: 14px 14px 10px 10px;
+  background:
+    linear-gradient(to bottom, var(--cbox-shell-light) 0, var(--cbox-shell) 74px, var(--cbox-shell) 100%);
   box-shadow:
-     0 -4px 0 0 var(--cbox-ink),
-     0  4px 0 0 var(--cbox-ink),
-    -4px 0 0 0 var(--cbox-ink),
-     4px 0 0 0 var(--cbox-ink);
+    inset 0 -6px 0 rgba(0, 0, 0, 0.22),
+    inset 0 3px 0 rgba(255, 255, 255, 0.22),
+    0 10px 0 var(--cbox-shell-dark),
+    0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
-/* --- testata --- */
+/* --- testata: lente, spie, titolo --- */
 
 .cbox-head {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--cbox-ink);
-  color: var(--cbox-page);
+  gap: 12px;
+  padding: 16px 4px 14px;
+}
+
+.cbox-lens {
+  position: relative;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #a8dcff 0%, var(--cbox-lens) 42%, #1f6fae 100%);
+  box-shadow:
+    0 0 0 4px #f4f0e6,
+    0 0 0 7px var(--cbox-shell-dark),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.35);
+}
+
+.cbox-lens-glint {
+  position: absolute;
+  left: 22%;
+  top: 18%;
+  width: 30%;
+  height: 22%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  animation: cbox-glint 5200ms ease-in-out infinite;
+}
+
+@keyframes cbox-glint {
+  0%, 70%, 100% { opacity: 0.85; transform: translate(0, 0); }
+  80%           { opacity: 1;    transform: translate(3px, 2px); }
+}
+
+.cbox-leds {
+  display: flex;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.cbox-led {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--cbox-shell-dark), inset 0 -2px 3px rgba(0, 0, 0, 0.3);
+}
+
+.cbox-led.is-red    { background: var(--cbox-led-red);    animation: cbox-blink 2600ms steps(1, end) infinite; }
+.cbox-led.is-yellow { background: var(--cbox-led-yellow); animation: cbox-blink 2600ms steps(1, end) 400ms infinite; }
+.cbox-led.is-green  { background: var(--cbox-led-green);  animation: cbox-blink 2600ms steps(1, end) 800ms infinite; }
+
+@keyframes cbox-blink {
+  0%, 84% { filter: none; }
+  86%     { filter: brightness(0.55); }
+  100%    { filter: none; }
 }
 
 .cbox-title {
   margin: 0;
+  margin-left: auto;
   font-size: 12px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
+  color: #fff3e2;
+  text-shadow: 0 2px 0 var(--cbox-shell-dark);
 }
 
 .cbox-close {
   appearance: none;
   border: 0;
-  background: none;
-  color: inherit;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   font: inherit;
-  font-size: 20px;
-  line-height: 1;
-  padding: 0 4px;
+  font-size: 17px;
+  line-height: 28px;
   cursor: pointer;
+  color: #fff3e2;
+  background: var(--cbox-shell-dark);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.28);
 }
 
-.cbox-close:focus-visible {
-  outline: 3px solid var(--cbox-page);
-  outline-offset: 2px;
-}
+.cbox-close:active { box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.28); }
+.cbox-close:focus-visible { outline: 3px solid #fff3e2; outline-offset: 2px; }
 
-/* --- schede --- */
+/* --- i tasti dell'apparecchio --- */
 
 .cbox-tabs {
   display: flex;
-  gap: 2px;
-  padding: 10px 12px 0;
+  gap: 6px;
+  padding: 0 0 10px;
 }
 
 .cbox-tab {
   appearance: none;
   border: 0;
   font: inherit;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  padding: 9px 12px;
+  padding: 9px 13px;
+  border-radius: 4px;
   cursor: pointer;
-  color: var(--cbox-ink);
-  background: rgba(0, 0, 0, 0.07);
+  color: #fff3e2;
+  background: var(--cbox-shell-dark);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.32);
+  transition: transform 80ms linear, box-shadow 80ms linear;
+}
+
+.cbox-tab:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.32);
 }
 
 .cbox-tab.is-on {
-  background: var(--cbox-paper);
-  box-shadow: 0 -3px 0 0 var(--cbox-ink), -3px 0 0 0 var(--cbox-ink), 3px 0 0 0 var(--cbox-ink);
+  color: var(--cbox-ink);
+  background: var(--cbox-screen);
+  box-shadow: 0 3px 0 var(--cbox-screen-dark);
 }
 
-.cbox-tab:focus-visible {
-  outline: 3px solid var(--cbox-ink);
-  outline-offset: -3px;
-}
+.cbox-tab:focus-visible { outline: 3px solid #fff3e2; outline-offset: 2px; }
 
-/* --- corpo --- */
+/* --- lo schermo --- */
 
 .cbox-body {
+  position: relative;
   flex: 1;
   overflow: auto;
-  margin: 0 12px 12px;
   padding: 16px;
-  background: var(--cbox-paper);
+  border-radius: 6px;
+  background: var(--cbox-screen);
   box-shadow:
-     0 -3px 0 0 var(--cbox-ink),
-     0  3px 0 0 var(--cbox-ink),
-    -3px 0 0 0 var(--cbox-ink),
-     3px 0 0 0 var(--cbox-ink);
+    inset 0 0 0 3px var(--cbox-screen-dark),
+    inset 0 4px 10px rgba(23, 51, 15, 0.28),
+    0 0 0 5px var(--cbox-shell-dark);
+}
+
+/* righe di scansione: appena percettibili, danno l'idea del vetro */
+.cbox-body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(23, 51, 15, 0.07) 0 1px,
+    transparent 1px 3px
+  );
 }
 
 .cbox-view.is-off { display: none; }
 
 .cbox-note {
   margin: 0 0 14px;
-  opacity: 0.7;
+  color: var(--cbox-ink-soft);
 }
 
 .cbox-subtitle {
   margin: 22px 0 10px;
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: 10px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  opacity: 0.7;
+  color: var(--cbox-ink-soft);
+  border-bottom: 2px solid rgba(23, 51, 15, 0.25);
+  padding-bottom: 6px;
+}
+
+/* numero di catalogo */
+.cbox-num {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--cbox-ink-soft);
 }
 
 /* --- griglia della squadra --- */
 
 .cbox-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(98px, 1fr));
   gap: 8px;
 }
 
@@ -165,31 +270,35 @@
   font: inherit;
   color: inherit;
   text-align: center;
-  padding: 10px 6px;
+  padding: 8px 6px 10px;
   cursor: pointer;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(23, 51, 15, 0.08);
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.22);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .cbox-cell b { font-size: 12px; }
-.cbox-cell span { font-size: 10px; opacity: 0.7; }
+.cbox-cell > span:not(.cbox-num):not(.cbox-pin) { font-size: 10px; color: var(--cbox-ink-soft); }
 
-.cbox-cell.is-active { background: rgba(0, 0, 0, 0.14); }
-.cbox-cell.is-selected { box-shadow: 0 0 0 3px var(--cbox-ink); }
-.cbox-cell.is-locked { opacity: 0.45; cursor: default; }
+.cbox-cell.is-active {
+  background: rgba(23, 51, 15, 0.18);
+  box-shadow: inset 0 0 0 2px var(--cbox-ink);
+}
 
+.cbox-cell.is-selected { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
+.cbox-cell.is-locked { opacity: 0.42; cursor: default; }
 .cbox-cell:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
 
 .cbox-pin {
   font-size: 9px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   background: var(--cbox-ink);
-  color: var(--cbox-paper);
-  padding: 1px 5px;
+  color: var(--cbox-screen);
+  padding: 1px 6px;
 }
 
 .cbox-art {
@@ -210,7 +319,7 @@
 
 .cbox-art-unknown {
   font-size: 22px;
-  opacity: 0.5;
+  color: var(--cbox-ink-soft);
 }
 
 /* --- scheda del singolo --- */
@@ -220,16 +329,19 @@
   gap: 16px;
   align-items: flex-start;
   margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid rgba(23, 51, 15, 0.25);
 }
 
 .cbox-card-art {
   flex: 0 0 auto;
-  width: 80px;
-  height: 80px;
+  width: 84px;
+  height: 84px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(23, 51, 15, 0.1);
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.28);
 }
 
 .cbox-card-art .cbox-art-img,
@@ -239,8 +351,9 @@
 }
 
 .cbox-card-info h3 {
-  margin: 0 0 6px;
-  font-size: 16px;
+  margin: 2px 0 6px;
+  font-size: 17px;
+  letter-spacing: 0.04em;
 }
 
 .cbox-card-info .cbox-note { margin-bottom: 4px; }
@@ -255,35 +368,52 @@
 
 .cbox-input {
   font: inherit;
-  color: inherit;
+  color: var(--cbox-ink);
   border: 0;
   padding: 9px 10px;
   min-width: 150px;
-  background: rgba(0, 0, 0, 0.07);
+  background: rgba(23, 51, 15, 0.1);
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.3);
 }
 
+.cbox-input::placeholder { color: var(--cbox-ink-soft); }
 .cbox-input:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: -3px; }
 
 .cbox-btn {
   appearance: none;
   border: 0;
   font: inherit;
-  padding: 9px 12px;
+  font-size: 12px;
+  padding: 9px 13px;
+  border-radius: 4px;
   cursor: pointer;
-  color: var(--cbox-paper);
-  background: var(--cbox-ink);
+  color: #fff3e2;
+  background: var(--cbox-shell);
+  box-shadow: 0 3px 0 var(--cbox-shell-dark);
   text-decoration: none;
   display: inline-block;
+  transition: transform 80ms linear, box-shadow 80ms linear;
 }
 
-.cbox-btn[disabled] { opacity: 0.4; cursor: default; }
+.cbox-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--cbox-shell-dark);
+}
+
+.cbox-btn[disabled] {
+  opacity: 0.45;
+  cursor: default;
+  transform: none;
+  box-shadow: 0 3px 0 var(--cbox-shell-dark);
+}
+
 .cbox-btn:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
 
 /* --- diario --- */
 
 .cbox-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(184px, 1fr));
   gap: 8px;
 }
 
@@ -292,10 +422,11 @@
   justify-content: space-between;
   gap: 10px;
   padding: 9px 10px;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(23, 51, 15, 0.08);
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.2);
 }
 
-.cbox-stat-label { opacity: 0.7; }
+.cbox-stat-label { color: var(--cbox-ink-soft); }
 
 .cbox-cal {
   display: grid;
@@ -309,20 +440,21 @@
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  background: rgba(0, 0, 0, 0.06);
-  opacity: 0.75;
+  color: var(--cbox-ink-soft);
+  background: rgba(23, 51, 15, 0.08);
 }
 
 .cbox-day.is-done {
   background: var(--cbox-accent);
-  color: var(--cbox-ink);
-  opacity: 1;
+  color: var(--cbox-screen);
 }
 
 .cbox-day.is-today {
   box-shadow: inset 0 0 0 2px var(--cbox-ink);
-  opacity: 1;
+  color: var(--cbox-ink);
 }
+
+.cbox-day.is-done.is-today { color: var(--cbox-screen); }
 
 .cbox-postcard {
   margin-top: 14px;
@@ -347,9 +479,25 @@
 
   .cbox-panel {
     width: 100%;
-    max-height: 100%;
     height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    padding: 0 10px 10px;
+    box-shadow: none;
   }
 
-  .cbox-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+  .cbox-lens { width: 36px; height: 36px; }
+  .cbox-led { width: 10px; height: 10px; }
+  .cbox-title { font-size: 11px; letter-spacing: 0.2em; }
+  .cbox-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+}
+
+/* --- rispetto delle preferenze di movimento --- */
+
+@media (prefers-reduced-motion: reduce) {
+  .cbox-lens-glint,
+  .cbox-led { animation: none; }
+
+  .cbox-tab,
+  .cbox-btn { transition: none; }
 }

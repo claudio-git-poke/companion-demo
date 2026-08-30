@@ -43,6 +43,13 @@
     return e;
   }
 
+  // 3 -> "003": il numero di catalogo si legge meglio a larghezza fissa.
+  function padNumber(n) {
+    var s = String(n);
+    while (s.length < 3) s = '0' + s;
+    return s;
+  }
+
   function formatDate(ms) {
     if (!ms) return '—';
     var d = new Date(ms);
@@ -69,6 +76,19 @@
     var panel = el('div', 'cbox-panel');
 
     var head = el('div', 'cbox-head');
+
+    var lens = el('div', 'cbox-lens');
+    lens.setAttribute('aria-hidden', 'true');
+    lens.appendChild(el('span', 'cbox-lens-glint'));
+    head.appendChild(lens);
+
+    var leds = el('div', 'cbox-leds');
+    leds.setAttribute('aria-hidden', 'true');
+    ['is-red', 'is-yellow', 'is-green'].forEach(function (c) {
+      leds.appendChild(el('span', 'cbox-led ' + c));
+    });
+    head.appendChild(leds);
+
     head.appendChild(el('h2', 'cbox-title', 'Box'));
 
     var close = el('button', 'cbox-close', '\u00D7');
@@ -164,7 +184,7 @@
     var grid = el('div', 'cbox-grid');
     var roster = Companion.getRoster();
 
-    roster.forEach(function (c) {
+    roster.forEach(function (c, index) {
       var cell = el('button', 'cbox-cell' + (c.owned ? '' : ' is-locked'));
       cell.type = 'button';
       cell.disabled = !c.owned;
@@ -189,6 +209,7 @@
         art.appendChild(el('span', 'cbox-art-unknown', '?'));
       }
 
+      cell.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(index + 1)));
       cell.appendChild(art);
       cell.appendChild(el('b', null, c.owned ? c.displayName : '???'));
       cell.appendChild(el('span', null, c.owned ? ('liv. ' + c.level) : 'da trovare'));
@@ -240,7 +261,11 @@
     }
     card.appendChild(art);
 
+    var position = 0;
+    Companion.getRoster().forEach(function (c, i) { if (c.id === id) position = i + 1; });
+
     var info = el('div', 'cbox-card-info');
+    info.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(position)));
     info.appendChild(el('h3', null, entry.displayName));
     info.appendChild(el('p', 'cbox-note',
       (entry.nickname ? entry.name + ' · ' : '') + entry.rarity +
