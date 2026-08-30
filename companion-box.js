@@ -216,8 +216,18 @@
     });
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && root && !root.classList.contains('is-hidden')) {
-        CompanionBox.close();
+      if (!root || root.classList.contains('is-hidden')) return;
+
+      if (e.key === 'Escape') { CompanionBox.close(); return; }
+
+      // Le frecce muovono come la croce, ma solo se non stai scrivendo.
+      var tag = e.target && e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      var map = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+      if (map[e.key]) {
+        e.preventDefault();
+        movePad(map[e.key]);
       }
     });
 
