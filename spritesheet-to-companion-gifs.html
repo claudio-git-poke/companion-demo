@@ -26,20 +26,20 @@
     justify-content:center;
     padding:24px 16px 64px;
   }
-  main{ width:100%; max-width:560px; }
+  main{ width:100%; max-width:640px; }
   h1{ font-size:22px; margin:0 0 4px; }
   p.sub{ color:var(--text-dim); margin:0 0 20px; font-size:14px; line-height:1.5; }
   .field{ margin-bottom:16px; }
   .field label{ display:block; font-size:13px; color:var(--text-dim); margin-bottom:6px; }
-  input[type="file"], input[type="number"]{
-    width:100%;
+  input[type="file"], input[type="number"], input[type="text"]{
     background:var(--panel);
     border:1px solid var(--border);
     border-radius:8px;
     color:var(--text);
-    padding:10px;
+    padding:8px 10px;
     font-size:14px;
   }
+  input[type="file"]{ width:100%; }
   button{
     display:inline-block;
     background:var(--accent);
@@ -53,6 +53,22 @@
     -webkit-tap-highlight-color:transparent;
   }
   button:disabled{ background:var(--accent-dim); color:#7b8a86; cursor:not-allowed; }
+  button.secondary{
+    background:var(--panel);
+    color:var(--text);
+    border:1px solid var(--border);
+    padding:8px 14px;
+    font-size:13px;
+    font-weight:500;
+  }
+  button.danger{
+    background:transparent;
+    color:#ff8a8a;
+    border:1px solid #4a2a2a;
+    padding:6px 10px;
+    font-size:16px;
+    line-height:1;
+  }
   #status{ margin-top:16px; font-size:14px; color:var(--text-dim); min-height:20px; white-space:pre-wrap; }
   #status.error{ color:#ff8a8a; }
   #status.ok{ color:var(--accent); }
@@ -66,24 +82,60 @@
     line-height:1.6;
     margin-bottom:20px;
   }
-  .note code{ color:var(--text); }
   .note b{ color:var(--warn); }
   #downloadRow{ margin-top:20px; display:none; }
   #movList{ margin-top:16px; font-size:13px; color:var(--text-dim); }
-  #movList div{ padding:4px 0; border-bottom:1px solid var(--border); }
+  #movList .mov-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:8px 0;
+    border-bottom:1px solid var(--border);
+  }
+  #movList img{
+    image-rendering:pixelated;
+    background:
+      linear-gradient(45deg, #2a2f3a 25%, transparent 25%) -6px 0/12px 12px,
+      linear-gradient(-45deg, #2a2f3a 25%, transparent 25%) -6px 0/12px 12px,
+      linear-gradient(45deg, transparent 75%, #2a2f3a 75%) -6px 0/12px 12px,
+      linear-gradient(-45deg, transparent 75%, #2a2f3a 75%) -6px 0/12px 12px;
+    border:1px solid var(--border);
+    border-radius:4px;
+    max-height:64px;
+  }
+  #movList .mov-info{ flex:1; }
+
+  table#movTable{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  table#movTable th{
+    text-align:left;
+    font-weight:500;
+    color:var(--text-dim);
+    padding:4px 6px;
+    font-size:12px;
+  }
+  table#movTable td{
+    padding:4px 6px;
+  }
+  table#movTable input[type="text"]{ width:100%; }
+  table#movTable input[type="number"]{ width:100%; }
+  table#movTable td:nth-child(1){ width:34%; }
+  table#movTable td:nth-child(2), table#movTable td:nth-child(3){ width:16%; }
+  table#movTable td:nth-child(4){ width:22%; }
+  table#movTable td:nth-child(5){ width:1%; text-align:right; }
+  #addRowBtn{ margin-top:10px; }
 </style>
 </head>
 <body>
 <main>
   <h1>Spritesheet → GIF per movimento</h1>
-  <p class="sub">Carica lo spritesheet (fotogrammi in fila, tutti della stessa dimensione) e il CSV dei movimenti. Genero una GIF animata per ciascun movimento, pronta per <code>imageMap</code> del companion.</p>
+  <p class="sub">Carica lo spritesheet (fotogrammi in fila, tutti della stessa dimensione) e compila la tabella dei movimenti qui sotto. Genero una GIF animata per ciascun movimento, pronta per <code>imageMap</code> del companion.</p>
 
   <div class="note">
-    Il CSV deve avere queste colonne, con intestazione nella prima riga:<br/>
-    <code>movimento,frame_inizio,frame_fine,durata_ms</code><br/>
-    <code>idle,1,4,150</code><br/>
-    <code>walk,5,12,100</code><br/>
-    <code>frame_inizio</code>/<code>frame_fine</code> sono le posizioni (a partire da 1) dei fotogrammi nella fila. <code>durata_ms</code> è il tempo di visualizzazione di ogni fotogramma nella GIF risultante.<br/><br/>
+    <code>Da</code>/<code>A</code> sono le posizioni (a partire da 1) dei fotogrammi nella fila, per ciascun movimento. <code>ms/frame</code> è il tempo di visualizzazione di ogni fotogramma nella GIF risultante.<br/><br/>
     <b>Nota sulla trasparenza:</b> il formato GIF non supporta la trasparenza sfumata come il PNG, solo un colore "invisibile". Se lo sprite ha bordi sfumati/antialiasing potresti vedere un lieve alone magenta ai bordi.
   </div>
 
@@ -93,13 +145,20 @@
   </div>
 
   <div class="field">
-    <label for="frameCountInput">Numero totale di fotogrammi nello spritesheet</label>
-    <input type="number" id="frameCountInput" min="1" placeholder="es. 24" />
+    <label for="frameWidthInput">Larghezza di un fotogramma (px)</label>
+    <input type="number" id="frameWidthInput" min="1" placeholder="es. 32" />
+    <div id="frameCountHint" style="margin-top:6px;font-size:13px;color:var(--text-dim)"></div>
   </div>
 
   <div class="field">
-    <label for="csvInput">Spreadsheet movimenti (CSV)</label>
-    <input type="file" id="csvInput" accept=".csv,text/csv" />
+    <label>Movimenti</label>
+    <table id="movTable">
+      <thead>
+        <tr><th>Nome</th><th>Da</th><th>A</th><th>ms/frame</th><th></th></tr>
+      </thead>
+      <tbody id="movTableBody"></tbody>
+    </table>
+    <button type="button" class="secondary" id="addRowBtn">+ Aggiungi movimento</button>
   </div>
 
   <button id="generateBtn">Genera GIF</button>
@@ -113,7 +172,6 @@
 </main>
 
 <script type="module">
-import Papa from 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/+esm';
 import JSZip from 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm';
 
 const GIF_JS_URL = 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js';
@@ -121,8 +179,10 @@ const GIF_WORKER_URL = 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worke
 const CHROMA_KEY = 0xFF00FF; // magenta, usato come "colore trasparente" nella GIF
 
 const sheetInput = document.getElementById('sheetInput');
-const frameCountInput = document.getElementById('frameCountInput');
-const csvInput = document.getElementById('csvInput');
+const frameWidthInput = document.getElementById('frameWidthInput');
+const frameCountHint = document.getElementById('frameCountHint');
+const movTableBody = document.getElementById('movTableBody');
+const addRowBtn = document.getElementById('addRowBtn');
 const generateBtn = document.getElementById('generateBtn');
 const statusEl = document.getElementById('status');
 const movListEl = document.getElementById('movList');
@@ -130,13 +190,105 @@ const downloadRow = document.getElementById('downloadRow');
 const downloadBtn = document.getElementById('downloadBtn');
 
 let sheetImage = null;
-let movimenti = [];
 let gifBlobsByName = {}; // nome -> Blob
 
 function setStatus(msg, type) {
   statusEl.textContent = msg;
   statusEl.className = type || '';
 }
+
+function aggiungiRigaMovimento(nome, inizio, fine, durata) {
+  const tr = document.createElement('tr');
+
+  const tdNome = document.createElement('td');
+  const inputNome = document.createElement('input');
+  inputNome.type = 'text';
+  inputNome.value = nome || '';
+  inputNome.placeholder = 'es. idle';
+  tdNome.appendChild(inputNome);
+
+  const tdInizio = document.createElement('td');
+  const inputInizio = document.createElement('input');
+  inputInizio.type = 'number';
+  inputInizio.min = '1';
+  inputInizio.value = inizio || '';
+  tdInizio.appendChild(inputInizio);
+
+  const tdFine = document.createElement('td');
+  const inputFine = document.createElement('input');
+  inputFine.type = 'number';
+  inputFine.min = '1';
+  inputFine.value = fine || '';
+  tdFine.appendChild(inputFine);
+
+  const tdDurata = document.createElement('td');
+  const inputDurata = document.createElement('input');
+  inputDurata.type = 'number';
+  inputDurata.min = '1';
+  inputDurata.value = durata || 120;
+  tdDurata.appendChild(inputDurata);
+
+  const tdRimuovi = document.createElement('td');
+  const btnRimuovi = document.createElement('button');
+  btnRimuovi.type = 'button';
+  btnRimuovi.className = 'danger';
+  btnRimuovi.textContent = '×';
+  btnRimuovi.addEventListener('click', () => tr.remove());
+  tdRimuovi.appendChild(btnRimuovi);
+
+  tr.appendChild(tdNome);
+  tr.appendChild(tdInizio);
+  tr.appendChild(tdFine);
+  tr.appendChild(tdDurata);
+  tr.appendChild(tdRimuovi);
+  movTableBody.appendChild(tr);
+}
+
+function leggiMovimentiDallaTabella() {
+  const righe = Array.from(movTableBody.querySelectorAll('tr'));
+  const movimenti = [];
+  const errori = [];
+
+  righe.forEach((tr, idx) => {
+    const input = tr.querySelectorAll('input');
+    const nome = input[0].value.trim();
+    const inizio = parseInt(input[1].value, 10);
+    const fine = parseInt(input[2].value, 10);
+    const durata = parseInt(input[3].value, 10) || 120;
+
+    if (!nome && isNaN(inizio) && isNaN(fine)) return; // riga vuota, ignorala
+
+    if (!nome) errori.push(`Riga ${idx + 1}: manca il nome del movimento.`);
+    if (isNaN(inizio) || isNaN(fine)) errori.push(`Riga ${idx + 1}: "Da"/"A" non validi.`);
+
+    movimenti.push({ nome, inizio, fine, durata });
+  });
+
+  return { movimenti, errori };
+}
+
+// Righe di partenza, modificabili/eliminabili liberamente
+aggiungiRigaMovimento('idle', 1, 41, 150);
+aggiungiRigaMovimento('happy', 42, 49, 90);
+
+addRowBtn.addEventListener('click', () => aggiungiRigaMovimento('', '', '', 120));
+
+function aggiornaStimaFotogrammi() {
+  if (!sheetImage) { frameCountHint.textContent = ''; return; }
+  const larghezza = parseFloat(frameWidthInput.value);
+  if (!larghezza || larghezza <= 0) { frameCountHint.textContent = ''; return; }
+
+  const conteggio = sheetImage.width / larghezza;
+  if (Number.isInteger(conteggio)) {
+    frameCountHint.textContent = `→ ${conteggio} fotogrammi rilevati (${sheetImage.width}px ÷ ${larghezza}px).`;
+    frameCountHint.style.color = 'var(--accent)';
+  } else {
+    frameCountHint.textContent = `Attenzione: ${sheetImage.width}px non è divisibile esattamente per ${larghezza}px (verrebbero ${conteggio.toFixed(2)} fotogrammi). Controlla la larghezza.`;
+    frameCountHint.style.color = 'var(--warn)';
+  }
+}
+
+frameWidthInput.addEventListener('input', aggiornaStimaFotogrammi);
 
 sheetInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
@@ -146,38 +298,15 @@ sheetInput.addEventListener('change', async (e) => {
   img.onload = () => {
     sheetImage = img;
     setStatus(`Spritesheet caricato: ${img.width}×${img.height}px.`);
+    if (!frameWidthInput.value) {
+      // Ipotesi di partenza: fotogramma quadrato (larghezza = altezza immagine).
+      // Modificabile se il fotogramma non è quadrato.
+      frameWidthInput.value = img.height;
+    }
+    aggiornaStimaFotogrammi();
   };
   img.onerror = () => setStatus('Impossibile leggere il PNG.', 'error');
   img.src = url;
-});
-
-csvInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: (results) => {
-      const righe = results.data;
-      const errori = [];
-      movimenti = righe.map((r, idx) => {
-        const nome = (r.movimento || '').trim();
-        const inizio = parseInt(r.frame_inizio, 10);
-        const fine = parseInt(r.frame_fine, 10);
-        const durata = parseInt(r.durata_ms, 10) || 120;
-        if (!nome) errori.push(`Riga ${idx + 2}: manca il nome del movimento.`);
-        if (isNaN(inizio) || isNaN(fine)) errori.push(`Riga ${idx + 2}: frame_inizio/frame_fine non validi.`);
-        return { nome, inizio, fine, durata };
-      });
-      if (errori.length) {
-        setStatus('Problemi nel CSV:\n' + errori.join('\n'), 'error');
-        movimenti = [];
-      } else {
-        setStatus(`${movimenti.length} movimenti letti dal CSV.`, 'ok');
-      }
-    },
-    error: (err) => setStatus('Errore nella lettura del CSV: ' + err.message, 'error'),
-  });
 });
 
 function loadGifWorkerBlobUrl() {
@@ -236,13 +365,16 @@ function generaGifMovimento(frameWidth, frameHeight, movimento, workerBlobUrl) {
 
 generateBtn.addEventListener('click', async () => {
   if (!sheetImage) { setStatus('Carica prima lo spritesheet PNG.', 'error'); return; }
-  const frameCount = parseInt(frameCountInput.value, 10);
-  if (!frameCount || frameCount < 1) { setStatus('Indica il numero totale di fotogrammi.', 'error'); return; }
-  if (!movimenti.length) { setStatus('Carica prima il CSV dei movimenti.', 'error'); return; }
+  const frameWidth = parseFloat(frameWidthInput.value);
+  if (!frameWidth || frameWidth < 1) { setStatus('Indica la larghezza di un fotogramma.', 'error'); return; }
 
-  const frameWidth = sheetImage.width / frameCount;
-  if (!Number.isInteger(frameWidth)) {
-    setStatus(`Attenzione: la larghezza dello spritesheet (${sheetImage.width}px) non è divisibile esattamente per ${frameCount} fotogrammi. Controlla il numero inserito.`, 'error');
+  const { movimenti, errori } = leggiMovimentiDallaTabella();
+  if (errori.length) { setStatus('Problemi nella tabella movimenti:\n' + errori.join('\n'), 'error'); return; }
+  if (!movimenti.length) { setStatus('Aggiungi almeno un movimento nella tabella.', 'error'); return; }
+
+  const frameCount = sheetImage.width / frameWidth;
+  if (!Number.isInteger(frameCount)) {
+    setStatus(`Attenzione: la larghezza dello spritesheet (${sheetImage.width}px) non è divisibile esattamente per ${frameWidth}px di larghezza fotogramma. Controlla il valore inserito.`, 'error');
     return;
   }
   const frameHeight = sheetImage.height;
@@ -270,7 +402,18 @@ generateBtn.addEventListener('click', async () => {
       gifBlobsByName[m.nome] = blob;
 
       const row = document.createElement('div');
-      row.textContent = `${m.nome}: fotogrammi ${m.inizio}-${m.fine}, ${blob.size} byte`;
+      row.className = 'mov-row';
+
+      const anteprima = document.createElement('img');
+      anteprima.src = URL.createObjectURL(blob);
+      anteprima.alt = m.nome;
+
+      const info = document.createElement('div');
+      info.className = 'mov-info';
+      info.textContent = `${m.nome}: fotogrammi ${m.inizio}-${m.fine}, ${(m.fine - m.inizio + 1)} fotogrammi, ${blob.size} byte`;
+
+      row.appendChild(anteprima);
+      row.appendChild(info);
       movListEl.appendChild(row);
     }
 
