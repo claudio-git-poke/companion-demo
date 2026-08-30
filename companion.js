@@ -39,6 +39,14 @@
     petTokenImages: [],
     petTokenSize: 16,         // lato in px di ogni oggetto
 
+    // --- Scatole del deposito ---
+    // Come nel PC dei giochi: piu' scatole, ciascuna con un nome e uno
+    // sfondo, e un numero fisso di posti disposti in griglia.
+    boxCount: 8,
+    boxSize: 30,
+    boxColumns: 6,
+    wallpapers: ['Carta', 'Quadretti', 'Righe', 'Pois', 'Bosco', 'Onde'],
+
     // --- Companion del giorno ---
     // Con piu' di un companion posseduto, ogni giorno ne tocca uno diverso,
     // a meno che l'utente non ne fissi uno con Companion.pin(id).
@@ -603,6 +611,10 @@
       lastWelcomeDay: null,  // ultimo giorno in cui ha fatto festa al rientro
       reminder: false,       // promemoria serale attivo
 
+      boxSlots: {},          // id -> { box, slot } posto nel deposito
+      boxNames: [],          // nome di ogni scatola
+      boxWalls: [],          // sfondo di ogni scatola (indice in cfg.wallpapers)
+
       pinnedId: null,        // companion fissato dall'utente
       dayCompanionId: null,  // companion di oggi
       dayCompanionDay: null  // giorno a cui si riferisce
@@ -646,6 +658,14 @@
       }
     }
 
+    if (state.boxSlots) {
+      for (id in state.boxSlots) {
+        if (Object.prototype.hasOwnProperty.call(state.boxSlots, id) && !getCreature(id)) {
+          delete state.boxSlots[id];
+        }
+      }
+    }
+
     if (state.pinnedId && !getCreature(state.pinnedId)) state.pinnedId = null;
     if (state.dayCompanionId && !getCreature(state.dayCompanionId)) {
       state.dayCompanionId = null;
@@ -681,6 +701,7 @@
       emit('companion:assigned', { id: chosen.id, name: chosen.name });
     }
     ensureOwned(state.activeId);
+    assignMissingSlots();
     rollDay();
   }
 
@@ -792,6 +813,68 @@
 
     rotateDayCompanion();
 
+    if (changed) persist();
+  }
+
+  /* ----------------------------------------------------------
+     6c. DEPOSITO
+     Ogni companion posseduto occupa un posto in una scatola. Chi e'
+     attivo resta comunque nella sua casella: la squadra e' una vista,
+     non un posto separato.
+     ---------------------------------------------------------- */
+
+  function ensureBoxState() {
+    if (!state.boxSlots) state.boxSlots = {};
+    if (!state.boxNames) state.boxNames = [];
+    if (!state.boxWalls) state.boxWalls = [];
+
+    for (var i = 0; i < cfg.boxCount; i++) {
+      if (!state.boxNames[i]) state.boxNames[i] = 'Scatola ' + (i + 1);
+      if (typeof state.boxWalls[i] !== 'number') {
+        state.boxWalls[i] = i % cfg.wallpapers.length;
+      }
+    }
+  }
+
+  function slotTaken(box, slot) {
+    var id;
+    for (id in state.boxSlots) {
+      if (Object.prototype.hasOwnProperty.call(state.boxSlots, id) &&
+          state.boxSlots[id] && state.boxSlots[id].box === box &&
+          state.boxSlots[id].slot === slot) {
+        return id;
+      }
+    }
+    return null;
+  }
+
+  // Primo posto libero, scorrendo le scatole in ordine.
+  function assignSlot(id) {
+    ensureBoxState();
+    if (state.boxSlots[id]) return state.boxSlots[id];
+
+    for (var b = 0; b < cfg.boxCount; b++) {
+      for (var sIdx = 0; sIdx < cfg.boxSize; sIdx++) {
+        if (!slotTaken(b, sIdx)) {
+          state.boxSlots[id] = { box: b, slot: sIdx };
+          return state.boxSlots[id];
+        }
+      }
+    }
+    return null;
+  }
+
+  // Da' un posto a chiunque sia posseduto e non ne abbia ancora uno.
+  function assignMissingSlots() {
+    ensureBoxState();
+    var id, changed = false;
+    for (id in state.owned) {
+      if (Object.prototype.hasOwnProperty.call(state.owned, id) &&
+          getCreature(id) && !state.boxSlots[id]) {
+        assignSlot(id);
+        changed = true;
+      }
+    }
     if (changed) persist();
   }
 
@@ -2244,6 +2327,7 @@
       if (!creature) return null;
       if (state.owned[id]) return { id: id, name: creature.name, duplicate: true };
       ensureOwned(id);
+      assignSlot(id);
       persist();
       if (creature.rarity === 'leggendario') screenFlash(560);
       emit('companion:unlocked', { id: id, name: creature.name, rarity: creature.rarity });
@@ -2261,6 +2345,104 @@
 
       var chosen = weightedPick(locked);
       return Companion.unlock(chosen.id);
+    },
+
+    /* Elenco delle scatole: nome, sfondo e quanti companion contiene. */
+    getBoxes: function () {
+      ensureBoxState();
+      var counts = [];
+      var i, id;
+      for (i = 0; i < cfg.boxCount; i++) counts[i] = 0;
+      for (id in state.boxSlots) {
+        if (Object.prototype.hasOwnProperty.call(state.boxSlots, id) && state.owned[id]) {
+          counts[state.boxSlots[id].box] += 1;
+        }
+      }
+      return state.boxNames.slice(0, cfg.boxCount).map(function (name, index) {
+        return {
+          index: index,
+          name: name,
+          wallpaper: state.boxWalls[index],
+          wallpaperName: cfg.wallpapers[state.boxWalls[index]] || '',
+          count: counts[index],
+          size: cfg.boxSize
+        };
+      });
+    },
+
+    /* Il contenuto di una scatola: tutti i posti, vuoti compresi. */
+    getBox: function (index) {
+      ensureBoxState();
+      var b = clamp(index || 0, 0, cfg.boxCount - 1);
+      var slots = [];
+
+      for (var i = 0; i < cfg.boxSize; i++) {
+        var id = slotTaken(b, i);
+        var creature = id && state.owned[id] ? getCreature(id) : null;
+        slots.push(creature ? {
+          slot: i,
+          id: creature.id,
+          name: creature.name,
+          displayName: displayName(creature),
+          image: creature.spriteImages ? (creature.spriteImages.idle || null) : null,
+          level: levelFor(state.owned[creature.id].xp),
+          rarity: creature.rarity,
+          active: state.activeId === creature.id,
+          pinned: state.pinnedId === creature.id
+        } : { slot: i, id: null });
+      }
+
+      return {
+        index: b,
+        name: state.boxNames[b],
+        wallpaper: state.boxWalls[b],
+        wallpaperName: cfg.wallpapers[state.boxWalls[b]] || '',
+        columns: cfg.boxColumns,
+        size: cfg.boxSize,
+        slots: slots
+      };
+    },
+
+    /* Rinomina una scatola. */
+    setBoxName: function (index, name) {
+      ensureBoxState();
+      var b = clamp(index || 0, 0, cfg.boxCount - 1);
+      var clean = String(name || '').replace(/[\r\n\t]+/g, ' ').trim().slice(0, 14);
+      state.boxNames[b] = clean || ('Scatola ' + (b + 1));
+      persist();
+      emit('companion:box', { index: b, name: state.boxNames[b] });
+      return state.boxNames[b];
+    },
+
+    /* Cambia lo sfondo di una scatola. */
+    setBoxWallpaper: function (index, wallpaper) {
+      ensureBoxState();
+      var b = clamp(index || 0, 0, cfg.boxCount - 1);
+      state.boxWalls[b] = clamp(wallpaper || 0, 0, cfg.wallpapers.length - 1);
+      persist();
+      emit('companion:box', { index: b, wallpaper: state.boxWalls[b] });
+      return state.boxWalls[b];
+    },
+
+    /* Sposta un companion in un altro posto. Se il posto e' occupato,
+       i due si scambiano, come quando trascini una miniatura sull'altra. */
+    moveCompanion: function (id, box, slot) {
+      ensureBoxState();
+      if (!state.owned[id]) return false;
+
+      var b = clamp(box, 0, cfg.boxCount - 1);
+      var sIdx = clamp(slot, 0, cfg.boxSize - 1);
+      var other = slotTaken(b, sIdx);
+      var from = state.boxSlots[id];
+
+      if (other === id) return true;
+      if (other && from) state.boxSlots[other] = { box: from.box, slot: from.slot };
+      else if (other) delete state.boxSlots[other];
+
+      state.boxSlots[id] = { box: b, slot: sIdx };
+      persist();
+      emit('companion:moved', { id: id, box: b, slot: sIdx, swappedWith: other || null });
+      return true;
     },
 
     /* Il catalogo completo, pronto da disegnare. Ogni voce ha:

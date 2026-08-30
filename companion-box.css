@@ -289,6 +289,246 @@
   font-size: 12px;
 }
 
+/* --- Dex: elenco a sinistra, scheda a destra --- */
+
+.cbox-split {
+  display: grid;
+  grid-template-columns: minmax(150px, 34%) 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.cbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 4px;
+  background: rgba(23, 51, 15, 0.08);
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.22);
+}
+
+.cbox-listrow {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  cursor: pointer;
+  background: none;
+}
+
+.cbox-listrow.is-selected {
+  background: var(--cbox-ink);
+  color: var(--cbox-screen);
+}
+
+.cbox-listrow.is-selected .cbox-num { color: var(--cbox-screen); opacity: 0.8; }
+.cbox-listrow.is-unknown { opacity: 0.45; cursor: default; }
+.cbox-listrow:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: -3px; }
+
+/* pallino di registrazione: pieno solo per chi hai davvero */
+.cbox-mark {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px currentColor;
+  opacity: 0.5;
+}
+
+.cbox-mark.is-on {
+  background: currentColor;
+  opacity: 1;
+}
+
+.cbox-listname {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cbox-detail { min-width: 0; }
+
+.cbox-species {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cbox-ink-soft);
+}
+
+.cbox-measures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.cbox-measure {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 2px dotted rgba(23, 51, 15, 0.3);
+}
+
+/* --- Deposito: squadra, scatole, posti --- */
+
+.cbox-party {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  background: rgba(23, 51, 15, 0.12);
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.28);
+}
+
+.cbox-party-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cbox-party .cbox-art { height: 40px; }
+.cbox-party .cbox-art-img,
+.cbox-party .cbox-art-canvas { width: 40px; height: 40px; }
+.cbox-party .cbox-note { display: inline; margin: 0; }
+
+.cbox-boxhead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cbox-arrow {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: #fff3e2;
+  background: var(--cbox-shell);
+  box-shadow: 0 3px 0 var(--cbox-shell-dark);
+  border-radius: 4px;
+}
+
+.cbox-arrow:active { transform: translateY(3px); box-shadow: none; }
+.cbox-arrow:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
+
+.cbox-boxname {
+  flex: 1;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: var(--cbox-ink);
+  border: 0;
+  padding: 8px 10px;
+  background: rgba(23, 51, 15, 0.1);
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.28);
+}
+
+.cbox-boxname:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: -3px; }
+
+.cbox-boxgrid {
+  display: grid;
+  gap: 3px;
+  padding: 6px;
+  margin-bottom: 10px;
+  box-shadow: inset 0 0 0 3px rgba(23, 51, 15, 0.3);
+}
+
+.cbox-slot {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  background: rgba(253, 244, 220, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(23, 51, 15, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cbox-slot.is-empty { background: rgba(23, 51, 15, 0.06); }
+.cbox-slot.is-active { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
+.cbox-slot.is-held { background: var(--cbox-led-yellow); }
+.cbox-slot:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: -3px; }
+
+.cbox-slot-img {
+  display: block;
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* sfondi delle scatole */
+.is-wall-0 { background: rgba(253, 244, 220, 0.55); }
+
+.is-wall-1 {
+  background-color: rgba(253, 244, 220, 0.5);
+  background-image:
+    linear-gradient(rgba(23, 51, 15, 0.14) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 51, 15, 0.14) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+.is-wall-2 {
+  background-color: rgba(253, 244, 220, 0.5);
+  background-image: repeating-linear-gradient(
+    45deg, rgba(23, 51, 15, 0.12) 0 6px, transparent 6px 12px);
+}
+
+.is-wall-3 {
+  background-color: rgba(253, 244, 220, 0.5);
+  background-image: radial-gradient(rgba(23, 51, 15, 0.18) 2px, transparent 2px);
+  background-size: 14px 14px;
+}
+
+.is-wall-4 {
+  background-color: rgba(111, 196, 111, 0.35);
+  background-image: repeating-linear-gradient(
+    90deg, rgba(23, 51, 15, 0.16) 0 3px, transparent 3px 16px);
+}
+
+.is-wall-5 {
+  background-color: rgba(87, 176, 234, 0.3);
+  background-image: repeating-linear-gradient(
+    0deg, rgba(23, 51, 15, 0.14) 0 2px, transparent 2px 12px);
+}
+
+.cbox-walls {
+  display: flex;
+  gap: 5px;
+}
+
+.cbox-wall {
+  appearance: none;
+  border: 0;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(23, 51, 15, 0.35);
+}
+
+.cbox-wall.is-on { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
+.cbox-wall:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
+
 /* --- griglia del catalogo --- */
 
 .cbox-grid {
@@ -529,6 +769,10 @@
   .cbox-led { width: 10px; height: 10px; }
   .cbox-title { font-size: 11px; letter-spacing: 0.2em; }
   .cbox-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+
+  /* su telefono elenco e scheda si impilano */
+  .cbox-split { grid-template-columns: 1fr; }
+  .cbox-list { max-height: 180px; }
 }
 
 /* --- rispetto delle preferenze di movimento --- */

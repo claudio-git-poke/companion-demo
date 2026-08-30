@@ -98,8 +98,8 @@
 
     var tabs = el('div', 'cbox-tabs');
     var tabNames = [
-      { id: 'squadra', label: 'Catalogo' },
-      { id: 'scheda', label: 'Scheda' },
+      { id: 'squadra', label: 'Dex' },
+      { id: 'scheda', label: 'Deposito' },
       { id: 'diario', label: 'Diario' }
     ];
     tabNames.forEach(function (t) {
@@ -143,7 +143,8 @@
     });
 
     // Se il companion cambia mentre il box e' aperto, si riallinea.
-    ['changed', 'renamed', 'unlocked', 'pinned', 'streak', 'pet', 'dayCompanion', 'synced']
+    ['changed', 'renamed', 'unlocked', 'pinned', 'streak', 'pet', 'dayCompanion',
+     'synced', 'box', 'moved']
       .forEach(function (name) {
         document.addEventListener('companion:' + name, function () {
           if (root && !root.classList.contains('is-hidden')) render();
@@ -194,6 +195,12 @@
     return art;
   }
 
+  /* ----------------------------------------------------------
+     3. DEX
+     Elenco numerato a sinistra, scheda dati a destra: la struttura
+     dell'originale, dove la voce e' completa solo per chi hai davvero.
+     ---------------------------------------------------------- */
+
   function renderSquadra(view) {
     view.innerHTML = '';
 
@@ -203,74 +210,56 @@
     bar.appendChild(el('b', null, 'Trovati ' + progress.owned + ' su ' + progress.total));
     view.appendChild(bar);
 
-    var day = Companion.getDayCompanion();
-    var intro = el('p', 'cbox-note');
-    intro.textContent = day
-      ? (day.pinned
-          ? 'Hai fissato ' + day.displayName + ': resta lui finche\' non lo liberi.'
-          : 'Oggi tocca a ' + day.displayName + '. Domani cambia da solo.')
-      : 'Nessun companion ancora.';
-    view.appendChild(intro);
+    var split = el('div', 'cbox-split');
+    var list = el('div', 'cbox-list');
+    var detail = el('div', 'cbox-detail');
 
-    var grid = el('div', 'cbox-grid');
+    var dex = Companion.getDex();
+    if (!selectedId) selectedId = Companion.getActive().id;
 
-    Companion.getDex().forEach(function (c) {
-      var cell = el('button', 'cbox-cell is-' + c.status);
-      cell.type = 'button';
-      cell.disabled = c.status === 'sconosciuto';
-      if (c.active) cell.classList.add('is-active');
-      if (c.id === selectedId) cell.classList.add('is-selected');
+    dex.forEach(function (c) {
+      var row = el('button', 'cbox-listrow' + (c.owned ? ' is-owned' : ' is-unknown'));
+      row.type = 'button';
+      row.disabled = !c.owned;
+      if (c.id === selectedId) row.classList.add('is-selected');
 
-      cell.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(c.number)));
-      cell.appendChild(artFor(c, 3));
-      cell.appendChild(el('b', null, c.owned ? c.displayName : '???'));
-      cell.appendChild(el('span', null, c.owned ? ('liv. ' + c.level) : 'da trovare'));
-      if (c.pinned) cell.appendChild(el('span', 'cbox-pin', 'fissato'));
+      row.appendChild(el('span', 'cbox-mark' + (c.owned ? ' is-on' : '')));
+      row.appendChild(el('span', 'cbox-num', padNumber(c.number)));
+      row.appendChild(el('span', 'cbox-listname', c.owned ? c.displayName : '----------'));
 
-      cell.addEventListener('click', function () {
+      row.addEventListener('click', function () {
         selectedId = c.id;
         render();
-        showTab('scheda');
       });
-
-      grid.appendChild(cell);
+      list.appendChild(row);
     });
 
-    view.appendChild(grid);
+    var entry = null;
+    dex.forEach(function (c) { if (c.id === selectedId) entry = c; });
+    renderEntry(detail, entry);
+
+    split.appendChild(list);
+    split.appendChild(detail);
+    view.appendChild(split);
   }
 
-  /* ----------------------------------------------------------
-     4. SCHEDA DEL SINGOLO
-     ---------------------------------------------------------- */
+  // La scheda dati: immagine, numero, nome, categoria, misure, descrizione.
+  function renderEntry(detail, entry) {
+    detail.innerHTML = '';
 
-  function renderScheda(view) {
-    view.innerHTML = '';
-
-    var active = Companion.getActive();
-    var id = selectedId || active.id;
-    var entry = null;
-    Companion.getDex().forEach(function (c) { if (c.id === id) entry = c; });
-
-    if (!entry) {
-      view.appendChild(el('p', 'cbox-note', 'Scegli una voce dal catalogo.'));
-      return;
-    }
-
-    // Non ancora trovata: nessun dato da mostrare.
-    if (!entry.owned) {
+    if (!entry || !entry.owned) {
       var vuoto = el('div', 'cbox-card');
-      vuoto.appendChild(artFor(entry, 5));
+      vuoto.appendChild(artFor({ owned: false }, 5));
       var vi = el('div', 'cbox-card-info');
-      vi.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(entry.number)));
+      vi.appendChild(el('span', 'cbox-num', entry ? ('N. ' + padNumber(entry.number)) : ''));
       vi.appendChild(el('h3', null, '???'));
-      vi.appendChild(el('p', 'cbox-note', 'Nessun dato. Continua ad aprire bustine.'));
+      vi.appendChild(el('p', 'cbox-note', 'Nessun dato. La voce si compila quando lo trovi.'));
       vuoto.appendChild(vi);
-      view.appendChild(vuoto);
+      detail.appendChild(vuoto);
       return;
     }
 
     var card = el('div', 'cbox-card');
-
     var art = el('div', 'cbox-card-art');
     art.appendChild(artFor(entry, 5).firstChild);
     card.appendChild(art);
@@ -278,51 +267,49 @@
     var info = el('div', 'cbox-card-info');
     info.appendChild(el('span', 'cbox-num', 'N. ' + padNumber(entry.number)));
     info.appendChild(el('h3', null, entry.displayName));
-
-    info.appendChild(el('p', 'cbox-note',
-      (entry.nickname ? entry.name + ' · ' : '') + entry.rarity +
-      ' · livello affetto ' + entry.level));
-    info.appendChild(el('p', 'cbox-note',
-      entry.pets + ' coccole · con te dal ' + formatDate(entry.unlockedAt)));
-
+    info.appendChild(el('p', 'cbox-species',
+      (entry.nickname ? entry.name + ' · ' : '') + entry.rarity));
     card.appendChild(info);
-    view.appendChild(card);
+    detail.appendChild(card);
 
-    // Voce del catalogo e provenienza.
-    if (entry.dex) view.appendChild(el('p', 'cbox-dex', entry.dex));
-    if (entry.where) {
-      var hint = el('p', 'cbox-hint');
-      hint.appendChild(el('span', 'cbox-num', 'Dove si trova'));
-      hint.appendChild(el('span', null, ' ' + entry.where));
-      view.appendChild(hint);
-    }
+    // Le "misure" della voce originale, tradotte in quello che qui conta.
+    var misure = el('div', 'cbox-measures');
+    [
+      ['Affetto', 'livello ' + entry.level],
+      ['Coccole', String(entry.pets)],
+      ['Con te dal', formatDate(entry.unlockedAt)],
+      ['Provenienza', entry.where || '—']
+    ].forEach(function (row) {
+      var r = el('div', 'cbox-measure');
+      r.appendChild(el('span', 'cbox-stat-label', row[0]));
+      r.appendChild(el('b', null, row[1]));
+      misure.appendChild(r);
+    });
+    detail.appendChild(misure);
 
-    // rinomina
+    if (entry.dex) detail.appendChild(el('p', 'cbox-dex', entry.dex));
+
+    // Nomignolo
     var renameRow = el('div', 'cbox-row');
     var input = el('input', 'cbox-input');
     input.type = 'text';
     input.maxLength = 16;
     input.placeholder = 'nomignolo';
     input.value = entry.nickname || '';
-
     var save = el('button', 'cbox-btn', 'Salva il nome');
     save.type = 'button';
-    save.addEventListener('click', function () {
-      Companion.setNickname(entry.id, input.value);
-    });
-
+    save.addEventListener('click', function () { Companion.setNickname(entry.id, input.value); });
     renameRow.appendChild(input);
     renameRow.appendChild(save);
-    view.appendChild(renameRow);
+    detail.appendChild(renameRow);
 
-    // azioni
+    // Azioni
     var actions = el('div', 'cbox-row');
-
-    var setActive = el('button', 'cbox-btn', 'Portalo con te oggi');
-    setActive.type = 'button';
-    setActive.disabled = entry.active;
-    setActive.addEventListener('click', function () { Companion.setActive(entry.id); });
-    actions.appendChild(setActive);
+    var take = el('button', 'cbox-btn', 'Portalo con te');
+    take.type = 'button';
+    take.disabled = entry.active;
+    take.addEventListener('click', function () { Companion.setActive(entry.id); });
+    actions.appendChild(take);
 
     var pin = el('button', 'cbox-btn', entry.pinned ? 'Liberalo dalla rotazione' : 'Fissalo sempre');
     pin.type = 'button';
@@ -331,13 +318,152 @@
       else Companion.pin(entry.id);
     });
     actions.appendChild(pin);
-
-    view.appendChild(actions);
+    detail.appendChild(actions);
   }
 
   /* ----------------------------------------------------------
-     5. DIARIO: statistiche, calendario, cartolina
+     4. DEPOSITO
+     Scatole con nome e sfondo, una griglia di posti fissi e la
+     fascia della squadra in alto: preleva e deposita come nel PC.
      ---------------------------------------------------------- */
+
+  var currentBox = 0;
+  var holding = null;   // companion "in mano", in attesa di un posto
+
+  function renderScheda(view) {
+    view.innerHTML = '';
+
+    var box = Companion.getBox(currentBox);
+    var active = Companion.getActive();
+
+    // fascia della squadra
+    var party = el('div', 'cbox-party');
+    party.appendChild(el('span', 'cbox-num', 'In squadra'));
+    var pcard = el('div', 'cbox-party-card');
+    pcard.appendChild(artFor({ owned: true, id: active.id, image: active.image }, 3));
+    var pinfo = el('div');
+    pinfo.appendChild(el('b', null, active.displayName));
+    pinfo.appendChild(el('span', 'cbox-note', ' liv. ' + active.level));
+    pcard.appendChild(pinfo);
+    party.appendChild(pcard);
+    view.appendChild(party);
+
+    // testata della scatola
+    var head = el('div', 'cbox-boxhead');
+    var prev = el('button', 'cbox-arrow', '\u25C0');
+    prev.type = 'button';
+    prev.setAttribute('aria-label', 'Scatola precedente');
+    prev.addEventListener('click', function () {
+      var total = Companion.getBoxes().length;
+      currentBox = (currentBox - 1 + total) % total;
+      render();
+    });
+
+    var nameInput = el('input', 'cbox-boxname');
+    nameInput.type = 'text';
+    nameInput.maxLength = 14;
+    nameInput.value = box.name;
+    nameInput.setAttribute('aria-label', 'Nome della scatola');
+    nameInput.addEventListener('change', function () {
+      Companion.setBoxName(currentBox, nameInput.value);
+      render();
+    });
+
+    var next = el('button', 'cbox-arrow', '\u25B6');
+    next.type = 'button';
+    next.setAttribute('aria-label', 'Scatola successiva');
+    next.addEventListener('click', function () {
+      var total = Companion.getBoxes().length;
+      currentBox = (currentBox + 1) % total;
+      render();
+    });
+
+    head.appendChild(prev);
+    head.appendChild(nameInput);
+    head.appendChild(next);
+    view.appendChild(head);
+
+    // griglia dei posti
+    var grid = el('div', 'cbox-boxgrid is-wall-' + box.wallpaper);
+    grid.style.gridTemplateColumns = 'repeat(' + box.columns + ', 1fr)';
+
+    box.slots.forEach(function (s) {
+      var cell = el('button', 'cbox-slot');
+      cell.type = 'button';
+      if (!s.id) cell.classList.add('is-empty');
+      if (s.active) cell.classList.add('is-active');
+      if (holding && s.id === holding) cell.classList.add('is-held');
+
+      if (s.id) {
+        var img = el('img', 'cbox-slot-img');
+        img.src = s.image || '';
+        img.alt = s.displayName;
+        cell.appendChild(img);
+        cell.title = s.displayName + ' · liv. ' + s.level;
+      } else {
+        cell.setAttribute('aria-label', 'Posto libero');
+      }
+
+      cell.addEventListener('click', function () {
+        if (holding) {
+          Companion.moveCompanion(holding, currentBox, s.slot);
+          holding = null;
+        } else if (s.id) {
+          holding = s.id;
+          selectedId = s.id;
+        }
+        render();
+      });
+
+      grid.appendChild(cell);
+    });
+    view.appendChild(grid);
+
+    // riga di stato e comandi
+    var footer = el('div', 'cbox-row');
+    footer.appendChild(el('span', 'cbox-note', holding
+      ? 'Hai in mano un companion: tocca un posto per lasciarlo.'
+      : (box.count + ' su ' + box.size + ' posti occupati in questa scatola.')));
+    view.appendChild(footer);
+
+    var tools = el('div', 'cbox-row');
+
+    if (holding) {
+      var takeIt = el('button', 'cbox-btn', 'Portalo con te');
+      takeIt.type = 'button';
+      takeIt.addEventListener('click', function () {
+        Companion.setActive(holding);
+        holding = null;
+        render();
+      });
+      tools.appendChild(takeIt);
+
+      var drop = el('button', 'cbox-btn', 'Lascialo stare');
+      drop.type = 'button';
+      drop.addEventListener('click', function () { holding = null; render(); });
+      tools.appendChild(drop);
+    }
+
+    tools.appendChild(el('span', 'cbox-num', 'Sfondo'));
+
+    var walls = el('div', 'cbox-walls');
+    for (var w = 0; w < 6; w++) {
+      (function (index) {
+        var swatch = el('button', 'cbox-wall is-wall-' + index +
+          (box.wallpaper === index ? ' is-on' : ''));
+        swatch.type = 'button';
+        swatch.setAttribute('aria-label', 'Sfondo ' + (index + 1));
+        swatch.addEventListener('click', function () {
+          Companion.setBoxWallpaper(currentBox, index);
+          render();
+        });
+        walls.appendChild(swatch);
+      })(w);
+    }
+    tools.appendChild(walls);
+
+    view.appendChild(tools);
+  }
 
   function renderDiario(view) {
     view.innerHTML = '';
@@ -484,6 +610,8 @@
 
   var CompanionBox = {
     open: function (creatureId) {
+      currentBox = 0;
+      holding = null;
       if (!root) build();
       selectedId = creatureId || Companion.getActive().id;
       render();

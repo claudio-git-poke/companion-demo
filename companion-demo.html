@@ -141,7 +141,7 @@
     <h2>Box e companion del giorno</h2>
     <div class="streak-line" id="day-line">—</div>
     <div style="margin-top:12px">
-      <button class="act" data-do="box">Apri il box</button>
+      <button class="act" data-do="box">Apri il deposito</button>
       <button class="act" data-do="unlock-all">Sblocca tutti (per provare)</button>
       <button class="act" data-do="next-day">Fai passare un giorno</button>
       <button class="act" data-do="unpin">Torna alla rotazione</button>
@@ -358,7 +358,7 @@
    'streak', 'streakbroken', 'bonus', 'visibility', 'synced',
    'renamed', 'appeared', 'milestone', 'token', 'recovered',
    'welcomeback', 'reminder', 'nudge', 'nudgeaction',
-   'dayCompanion', 'pinned', 'pruned'].forEach(function (name) {
+   'dayCompanion', 'pinned', 'pruned', 'box', 'moved'].forEach(function (name) {
     document.addEventListener('companion:' + name, function (e) {
       log('companion:' + name + '  ' + JSON.stringify(e.detail));
       refresh();
