@@ -244,13 +244,14 @@
   font: inherit;
   font-size: 10px;
   cursor: pointer;
-  color: rgba(19, 42, 68, 0.55);
-  background: #7ec4ef;
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.22);
-  opacity: 0.5;
+  color: rgba(19, 42, 68, 0.5);
+  background: #9fb6c4;                       /* spento: azzurro slavato */
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.28);
 }
 
-.cbox-key.is-on { opacity: 1; color: #132a44; }
+.cbox-key[disabled] { cursor: default; }
+
+.cbox-key.is-on { background: #7ec4ef; color: #132a44; }
 .cbox-key:active { box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.22); }
 .cbox-key:focus-visible { outline: 3px solid #fff3e2; outline-offset: 2px; }
 
@@ -575,11 +576,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 4px 8px;
   margin-bottom: 12px;
-  background: rgba(48, 56, 64, 0.12);
-  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.28);
+  color: #ffffff;
 }
+
+.cbox-party .cbox-num,
+.cbox-party .cbox-note { color: rgba(255, 255, 255, 0.85); }
 
 .cbox-party-card {
   display: flex;
@@ -622,40 +625,41 @@
   font-size: 13px;
   letter-spacing: 0.1em;
   text-align: center;
-  color: var(--cbox-ink);
+  color: #ffffff;
   border: 0;
-  padding: 8px 10px;
-  background: rgba(48, 56, 64, 0.1);
-  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.28);
+  padding: 9px 10px;
+  background: var(--cbox-teal);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
 }
+
+.cbox-boxname::placeholder { color: rgba(255, 255, 255, 0.7); }
 
 .cbox-boxname:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: -3px; }
 
 .cbox-boxgrid {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   padding: 6px;
   margin-bottom: 10px;
+  max-width: 360px;          /* i posti restano piccoli come nel gioco */
   box-shadow: inset 0 0 0 3px rgba(48, 56, 64, 0.3);
 }
 
 .cbox-slot {
   appearance: none;
-  border: 0;
   padding: 0;
   aspect-ratio: 1 / 1;
   cursor: pointer;
-  background: rgba(253, 244, 220, 0.35);
-  box-shadow: inset 0 0 0 1px rgba(48, 56, 64, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .cbox-slot.is-empty {
+  border: 0;
   border-image: none;
-  background: rgba(255, 255, 255, 0.28);
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.45);
+  background: rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22);
 }
 .cbox-slot.is-active { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
 .cbox-slot.is-held { background: var(--cbox-led-yellow); }
@@ -670,39 +674,39 @@
   image-rendering: crisp-edges;
 }
 
-/* sfondi delle scatole */
-.is-wall-0 { background: rgba(253, 244, 220, 0.55); }
+/* sfondi delle scatole, negli azzurri della pagina dati */
+.is-wall-0 { background: var(--cbox-teal); }
 
 .is-wall-1 {
-  background-color: rgba(253, 244, 220, 0.5);
+  background-color: var(--cbox-teal);
   background-image:
-    linear-gradient(rgba(48, 56, 64, 0.14) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(48, 56, 64, 0.14) 1px, transparent 1px);
-  background-size: 12px 12px;
+    linear-gradient(rgba(255, 255, 255, 0.22) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22) 2px, transparent 2px);
+  background-size: 16px 16px;
 }
 
 .is-wall-2 {
-  background-color: rgba(253, 244, 220, 0.5);
+  background-color: var(--cbox-teal);
   background-image: repeating-linear-gradient(
-    45deg, rgba(48, 56, 64, 0.12) 0 6px, transparent 6px 12px);
+    45deg, rgba(255, 255, 255, 0.18) 0 6px, transparent 6px 12px);
 }
 
 .is-wall-3 {
-  background-color: rgba(253, 244, 220, 0.5);
-  background-image: radial-gradient(rgba(48, 56, 64, 0.18) 2px, transparent 2px);
+  background-color: var(--cbox-teal);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.28) 2px, transparent 2px);
   background-size: 14px 14px;
 }
 
 .is-wall-4 {
-  background-color: rgba(111, 196, 111, 0.35);
+  background-color: var(--cbox-cyan);
   background-image: repeating-linear-gradient(
-    90deg, rgba(48, 56, 64, 0.16) 0 3px, transparent 3px 16px);
+    90deg, rgba(255, 255, 255, 0.2) 0 3px, transparent 3px 16px);
 }
 
 .is-wall-5 {
-  background-color: rgba(87, 176, 234, 0.3);
+  background-color: var(--cbox-deep);
   background-image: repeating-linear-gradient(
-    0deg, rgba(48, 56, 64, 0.14) 0 2px, transparent 2px 12px);
+    0deg, rgba(255, 255, 255, 0.16) 0 2px, transparent 2px 12px);
 }
 
 .cbox-walls {
@@ -1020,11 +1024,19 @@
 }
 
 /* pannello turchese con bordo scuro */
-.cbox-party,
-.cbox-boxgrid {
+.cbox-party {
   border: 16px solid transparent;
   border-image: url("companion/dex/frame.png") 16 fill stretch;
   background: none;
+  box-shadow: none;
+  image-rendering: pixelated;
+}
+
+/* La griglia usa la stessa cornice ma senza riempimento: al centro
+   resta visibile lo sfondo scelto per la scatola. */
+.cbox-boxgrid {
+  border: 16px solid transparent;
+  border-image: url("companion/dex/frame.png") 16 stretch;
   box-shadow: none;
   image-rendering: pixelated;
 }
@@ -1040,6 +1052,12 @@
   box-shadow: none;
   image-rendering: pixelated;
 }
+
+/* la cornice occupa gia' 12px per lato: il riempimento interno va ridotto */
+.cbox-measure,
+.cbox-stat { padding: 2px 4px; border-bottom: 0; }
+.cbox-list { padding: 2px; }
+.cbox-slot { border-width: 10px; }
 
 /* riquadro del testo: la finestra dei messaggi originale */
 .cbox-dex {

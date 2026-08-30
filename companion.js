@@ -2392,6 +2392,11 @@
         } : { slot: i, id: null });
       }
 
+      var occupati = 0;
+      for (var k = 0; k < slots.length; k++) {
+        if (slots[k].id) occupati += 1;
+      }
+
       return {
         index: b,
         name: state.boxNames[b],
@@ -2399,6 +2404,7 @@
         wallpaperName: cfg.wallpapers[state.boxWalls[b]] || '',
         columns: cfg.boxColumns,
         size: cfg.boxSize,
+        count: occupati,
         slots: slots
       };
     },
