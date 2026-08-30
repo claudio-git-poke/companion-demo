@@ -8,6 +8,16 @@
      --cmp-ink          colore testo/contorni
      --cmp-paper        sfondo della bolla
      --cmp-offset       distanza dai bordi (impostata da JS)
+     --cmp-token-size   lato degli oggetti raccolti (impostata da JS)
+     --cmp-walk         spostamento orizzontale della passeggiata (da JS)
+
+   Classi di stato applicate da companion.js sul contenitore:
+     .is-ready   c'e' una coccola valida disponibile
+     .is-sated   in ricarica: sazio, si riposa
+     .is-done    giornata completa: riposa piu' profondamente
+     .is-hop     sobbalzo di richiamo (breve)
+     .is-squash  schiacciata al tocco (breve)
+     .is-hidden  tolto dalla schermata
    ============================================================ */
 
 .cmp-widget {
@@ -16,6 +26,8 @@
   --cmp-ink: #241d16;
   --cmp-paper: #fdf4dc;
   --cmp-offset: 16px;
+  --cmp-token-size: 16px;
+  --cmp-walk: 0px;
 
   position: fixed;
   z-index: var(--cmp-z);
@@ -72,6 +84,11 @@
   line-height: 0;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+
+  /* passeggiata: lo spostamento e' sul pulsante, cosi' non litiga con le
+     animazioni di posa che agiscono su .cmp-stage */
+  transform: translateX(var(--cmp-walk, 0px));
+  transition: transform 2600ms ease-in-out;
 }
 
 .cmp-button:focus {
@@ -115,12 +132,69 @@
   background: rgba(0, 0, 0, 0.22);
   filter: blur(1px);
   z-index: 0;
+  transform-origin: 50% 50%;
+  transition: transform 320ms ease-out, opacity 320ms ease-out;
 }
 
-/* --- schiacciata al tocco --- */
+/* --- posture: lo stato si legge dalla postura, non da un indicatore --- */
+
+/* in ricarica: si e' seduto, l'ombra si allarga */
+.cmp-widget.is-sated .cmp-stage {
+  transform: translateY(2px) scaleY(0.97);
+}
+
+.cmp-widget.is-sated .cmp-shadow {
+  transform: scaleX(1.08);
+  opacity: 0.85;
+}
+
+/* giornata completa: respiro lento */
+.cmp-widget.is-done .cmp-stage {
+  animation: cmp-breathe 4200ms ease-in-out infinite;
+}
+
+.cmp-widget.is-done .cmp-shadow {
+  transform: scaleX(1.12);
+  opacity: 0.7;
+}
+
+@keyframes cmp-breathe {
+  0%, 100% { transform: translateY(2px) scaleY(0.97); }
+  50%      { transform: translateY(3px) scaleY(0.94); }
+}
+
+/* --- sobbalzo di richiamo --- */
+
+.cmp-widget.is-hop .cmp-stage {
+  animation: cmp-hop 660ms ease-out;
+}
+
+.cmp-widget.is-hop .cmp-shadow {
+  animation: cmp-shadow-hop 660ms ease-out;
+}
+
+@keyframes cmp-hop {
+  0%   { transform: translateY(0) scaleY(1); }
+  18%  { transform: translateY(0) scaleY(0.9); }
+  45%  { transform: translateY(-11px) scaleY(1.06); }
+  75%  { transform: translateY(0) scaleY(0.94); }
+  100% { transform: translateY(0) scaleY(1); }
+}
+
+@keyframes cmp-shadow-hop {
+  0%   { transform: scaleX(1);    opacity: 0.22; }
+  45%  { transform: scaleX(0.66); opacity: 0.12; }
+  100% { transform: scaleX(1);    opacity: 0.22; }
+}
+
+/* --- schiacciata al tocco (ha la precedenza sulle altre pose) --- */
 
 .cmp-widget.is-squash .cmp-stage {
   animation: cmp-squash 420ms steps(4, end);
+}
+
+.cmp-widget.is-squash .cmp-shadow {
+  animation: cmp-shadow-squash 420ms steps(4, end);
 }
 
 @keyframes cmp-squash {
@@ -130,11 +204,87 @@
   100% { transform: scale(1, 1); }
 }
 
+@keyframes cmp-shadow-squash {
+  0%   { transform: scaleX(1);    opacity: 0.22; }
+  30%  { transform: scaleX(1.16); opacity: 0.3; }
+  60%  { transform: scaleX(0.9);  opacity: 0.16; }
+  100% { transform: scaleX(1);    opacity: 0.22; }
+}
+
+/* --- oggetti raccolti nella giornata --- */
+
+.cmp-tokens {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  min-height: var(--cmp-token-size);
+  pointer-events: none;
+}
+
+.cmp-token {
+  display: block;
+  width: var(--cmp-token-size);
+  height: var(--cmp-token-size);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.cmp-token.is-new {
+  animation: cmp-token-pop 460ms steps(5, end);
+}
+
+@keyframes cmp-token-pop {
+  0%   { transform: translateY(-14px) scale(0.5); opacity: 0; }
+  55%  { transform: translateY(0) scale(1.2);     opacity: 1; }
+  100% { transform: translateY(0) scale(1);       opacity: 1; }
+}
+
+/* --- pulsante per togliere il companion dalla schermata --- */
+
+.cmp-dismiss {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  pointer-events: auto;
+  cursor: pointer;
+  font-family: var(--cmp-font);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--cmp-paper);
+  background: var(--cmp-ink);
+  opacity: 0.28;
+  transition: opacity 140ms linear;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cmp-top-right .cmp-dismiss,
+.cmp-top-left .cmp-dismiss {
+  bottom: auto;
+  top: -6px;
+}
+
+.cmp-widget:hover .cmp-dismiss,
+.cmp-dismiss:hover,
+.cmp-dismiss:focus-visible {
+  opacity: 1;
+}
+
+.cmp-dismiss:focus-visible {
+  outline: 3px solid var(--cmp-ink);
+  outline-offset: 2px;
+}
+
 /* --- bolla di dialogo --- */
 
 .cmp-bubble {
   pointer-events: none;
   max-width: 168px;
+  min-height: 15px;
   padding: 7px 10px;
   font-family: var(--cmp-font);
   font-size: 11px;
@@ -200,7 +350,15 @@
 /* --- rispetto delle preferenze di movimento --- */
 
 @media (prefers-reduced-motion: reduce) {
-  .cmp-widget.is-squash .cmp-stage { animation: none; }
+  .cmp-widget.is-squash .cmp-stage,
+  .cmp-widget.is-squash .cmp-shadow,
+  .cmp-widget.is-hop .cmp-stage,
+  .cmp-widget.is-hop .cmp-shadow,
+  .cmp-widget.is-done .cmp-stage,
+  .cmp-token.is-new { animation: none; }
+
+  .cmp-button { transition: none; }
+  .cmp-shadow { transition: none; }
   .cmp-particle { display: none; }
   .cmp-bubble { transition: none; }
 }

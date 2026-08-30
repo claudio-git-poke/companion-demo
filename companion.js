@@ -27,6 +27,42 @@
     autoStart: true,          // avvia subito animazione e widget d'angolo
     storageKey: 'cardsync.companion.v1',
 
+    // --- Confine del giorno ---
+    // Il giorno "di gioco" comincia alle 4 del mattino, non a mezzanotte:
+    // chi coccola all'una di notte non perde la streak senza capire perche'.
+    dayResetHour: 4,
+
+    // --- Oggetti che si accumulano ---
+    // Un'immagine per ogni coccola valida della giornata: metti qui i tuoi
+    // cinque file (o quanti ne vuoi, vengono ripetuti in ordine). Lista
+    // vuota = nessun oggetto mostrato, solo il comportamento della creatura.
+    petTokenImages: [],
+    petTokenSize: 16,         // lato in px di ogni oggetto
+
+    // --- Comportamento del widget ---
+    typewriter: true,         // testo che compare lettera per lettera
+    typeSpeedMs: 18,
+    dismissible: true,        // pulsante per togliere il companion dalla schermata
+    preloadImages: true,      // scarica in anticipo GIF e oggetti
+    statusRefreshMs: 20000,   // ogni quanto ricontrolla ricarica e postura
+
+    // Richiamo: un sobbalzo ogni tanto, ma solo quando c'e' davvero
+    // una coccola valida da fare.
+    readyHopMinMs: 120000,
+    readyHopMaxMs: 240000,
+
+    // Passeggiata: ogni tanto si sposta di qualche pixel e torna.
+    walk: true,
+    walkMinMs: 18000,
+    walkMaxMs: 45000,
+    walkRange: 26,            // spostamento massimo dal centro, in px
+
+    // Ore di silenzio: niente battute spontanee, niente sobbalzi, niente
+    // passeggiate. Le coccole restano possibili.
+    quietHours: true,
+    quietStartHour: 22,
+    quietEndHour: 8,
+
     // --- Coccole giornaliere ---
     // Servono dailyPetGoal coccole "valide" per completare la giornata.
     // Fra una coccola valida e la successiva deve passare petCooldownMs:
@@ -320,16 +356,58 @@
     return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
   }
 
+  // Data spostata indietro di dayResetHour: cosi' le ore piccole
+  // appartengono ancora al giorno precedente.
+  function gameDate() {
+    var shift = (cfg.dayResetHour || 0) * 3600000;
+    return new Date(Date.now() - shift);
+  }
+
   function todayKey() {
-    return dayKeyFrom(new Date());
+    return dayKeyFrom(gameDate());
   }
 
   // Mezzogiorno come riferimento: evita i salti dell'ora legale.
   function yesterdayKey() {
-    var d = new Date();
+    var d = gameDate();
     d.setHours(12, 0, 0, 0);
     d.setDate(d.getDate() - 1);
     return dayKeyFrom(d);
+  }
+
+  // Ore di silenzio: il companion non prende iniziativa.
+  function isQuietHour() {
+    if (!cfg.quietHours) return false;
+    var h = new Date().getHours();
+    return cfg.quietStartHour > cfg.quietEndHour
+      ? (h >= cfg.quietStartHour || h < cfg.quietEndHour)
+      : (h >= cfg.quietStartHour && h < cfg.quietEndHour);
+  }
+
+  // Scarica in anticipo GIF e oggetti: evita il lampo al primo cambio posa.
+  function preloadImages() {
+    if (!cfg.preloadImages || typeof Image !== 'function') return;
+    var list = [];
+    var i, key;
+
+    for (i = 0; i < ROSTER.length; i++) {
+      var map = ROSTER[i].spriteImages;
+      if (map) {
+        for (key in map) {
+          if (Object.prototype.hasOwnProperty.call(map, key)) list.push(map[key]);
+        }
+      }
+      if (ROSTER[i].spriteGif) list.push(ROSTER[i].spriteGif);
+    }
+    if (cfg.fallbackImage) list.push(cfg.fallbackImage);
+    list = list.concat(cfg.petTokenImages || []);
+
+    for (i = 0; i < list.length; i++) {
+      try {
+        var img = new Image();
+        img.src = list[i];
+      } catch (e) { /* niente: il precaricamento e' solo un'ottimizzazione */ }
+    }
   }
 
   function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -445,7 +523,9 @@
       streak: 0,
       streakDay: null,       // ultimo giorno completato
       lastDust: 0,           // polvere assegnata l'ultima volta
-      lastDustDay: null      // giorno a cui si riferisce lastDust
+      lastDustDay: null,     // giorno a cui si riferisce lastDust
+
+      hidden: false          // il companion e' stato tolto dalla schermata
     };
   }
 
@@ -490,6 +570,36 @@
     }
     ensureOwned(state.activeId);
     rollDay();
+  }
+
+  // Due schede aperte insieme: quando l'altra salva, questa si riallinea
+  // invece di sovrascriverla al primo click.
+  function attachStorageSync() {
+    if (!global.addEventListener) return;
+    global.addEventListener('storage', function (e) {
+      if (!e || e.key !== cfg.storageKey || !e.newValue) return;
+      var next;
+      try {
+        next = JSON.parse(e.newValue);
+      } catch (err) {
+        return;
+      }
+      if (!next || typeof next !== 'object') return;
+
+      state = migrateState(next);
+      if (!state.owned) state.owned = {};
+      ensureOwned(state.activeId);
+
+      if (widget) {
+        widget.refresh();
+        widget.syncStatus();
+      }
+      emit('companion:synced', {
+        activeId: state.activeId,
+        dailyPets: state.dailyPets,
+        streak: state.streak
+      });
+    });
   }
 
   function levelFor(xp) {
@@ -892,11 +1002,29 @@
     bubble.className = 'cmp-bubble';
     bubble.setAttribute('aria-live', 'polite');
 
+    var tokens = document.createElement('div');
+    tokens.className = 'cmp-tokens';
+    tokens.setAttribute('aria-hidden', 'true');
+
     stage.appendChild(shadow);
     button.appendChild(stage);
     root.appendChild(bubble);
     root.appendChild(button);
+    root.appendChild(tokens);
     root.appendChild(fx);
+
+    root.style.setProperty('--cmp-token-size', (cfg.petTokenSize || 16) + 'px');
+
+    var dismiss = null;
+    if (cfg.dismissible) {
+      dismiss = document.createElement('button');
+      dismiss.type = 'button';
+      dismiss.className = 'cmp-dismiss';
+      dismiss.setAttribute('aria-label', 'Togli il companion dalla schermata');
+      dismiss.textContent = '\u00D7';
+      root.appendChild(dismiss);
+    }
+
     document.body.appendChild(root);
 
     this.root = root;
@@ -904,8 +1032,15 @@
     this.stage = stage;
     this.fx = fx;
     this.bubble = bubble;
+    this.tokens = tokens;
+    this.dismiss = dismiss;
     this.bubbleTimer = null;
+    this.typeTimer = null;
     this.chatterTimer = null;
+    this.hopTimer = null;
+    this.walkTimer = null;
+    this.statusTimer = null;
+    this.walkX = 0;
 
     this.sprite = new CompanionSprite(stage, { scale: cfg.size });
 
@@ -917,18 +1052,137 @@
         self.pet();
       }
     });
+    if (dismiss) {
+      dismiss.addEventListener('click', function (e) {
+        e.stopPropagation();
+        Companion.hideWidget();
+      });
+    }
 
+    this.syncStatus();
     this.scheduleChatter();
+    this.scheduleHop();
+    this.scheduleWalk();
+    this.statusTimer = setInterval(function () { self.syncStatus(); }, cfg.statusRefreshMs);
   }
 
+  // Testo a macchina da scrivere, come le finestre di dialogo delle console
+  // portatili. Con "riduci animazioni" attivo compare tutto insieme.
   CornerWidget.prototype.say = function (text, ms) {
     var self = this;
-    this.bubble.textContent = text;
+    var hold = ms || 2600;
+
+    if (this.typeTimer) { clearInterval(this.typeTimer); this.typeTimer = null; }
+    if (this.bubbleTimer) { clearTimeout(this.bubbleTimer); this.bubbleTimer = null; }
     this.bubble.classList.add('is-visible');
-    if (this.bubbleTimer) clearTimeout(this.bubbleTimer);
-    this.bubbleTimer = setTimeout(function () {
-      self.bubble.classList.remove('is-visible');
-    }, ms || 2600);
+
+    function hideLater() {
+      self.bubbleTimer = setTimeout(function () {
+        self.bubble.classList.remove('is-visible');
+      }, hold);
+    }
+
+    if (!cfg.typewriter || prefersReducedMotion()) {
+      this.bubble.textContent = text;
+      hideLater();
+      return;
+    }
+
+    this.bubble.textContent = '';
+    var i = 0;
+    this.typeTimer = setInterval(function () {
+      i += 1;
+      self.bubble.textContent = text.slice(0, i);
+      if (i >= text.length) {
+        clearInterval(self.typeTimer);
+        self.typeTimer = null;
+        hideLater();
+      }
+    }, cfg.typeSpeedMs);
+  };
+
+  /* Postura e oggetti: rileggono lo stato e aggiornano le classi CSS.
+       is-ready  c'e' una coccola valida da fare
+       is-sated  in ricarica, sazio
+       is-done   giornata completa, riposa                                */
+  CornerWidget.prototype.syncStatus = function () {
+    rollDay();
+
+    var done = isGoalDone() || state.dailyPets >= cfg.dailyPetGoal;
+    var cooling = !done && cooldownLeft() > 0;
+
+    this.root.classList.toggle('is-done', done);
+    this.root.classList.toggle('is-sated', cooling);
+    this.root.classList.toggle('is-ready', !done && !cooling);
+
+    this.renderTokens(false);
+  };
+
+  // Un oggetto per ogni coccola valida della giornata.
+  CornerWidget.prototype.renderTokens = function (animateLast) {
+    var imgs = cfg.petTokenImages || [];
+    var n = Math.min(state.dailyPets, cfg.dailyPetGoal);
+
+    if (!imgs.length) {
+      if (this.tokens.firstChild) this.tokens.innerHTML = '';
+      return;
+    }
+    if (!animateLast && this.tokens.childNodes.length === n) return;
+
+    this.tokens.innerHTML = '';
+    for (var i = 0; i < n; i++) {
+      var el = document.createElement('img');
+      el.className = 'cmp-token' + (animateLast && i === n - 1 ? ' is-new' : '');
+      el.src = imgs[i % imgs.length];
+      el.alt = '';
+      this.tokens.appendChild(el);
+    }
+  };
+
+  // Sobbalzo di richiamo: solo quando c'e' davvero una coccola disponibile.
+  CornerWidget.prototype.scheduleHop = function () {
+    var self = this;
+    var span = Math.max(0, cfg.readyHopMaxMs - cfg.readyHopMinMs);
+    var wait = cfg.readyHopMinMs + Math.random() * span;
+    if (this.hopTimer) clearTimeout(this.hopTimer);
+    this.hopTimer = setTimeout(function () { self.hop(); }, wait);
+  };
+
+  CornerWidget.prototype.hop = function () {
+    var quiet = document.hidden || isQuietHour() || prefersReducedMotion() ||
+                this.root.classList.contains('is-hidden');
+    if (!quiet) {
+      this.syncStatus();
+      if (this.root.classList.contains('is-ready')) {
+        this.root.classList.remove('is-hop');
+        void this.root.offsetWidth;
+        this.root.classList.add('is-hop');
+        var self = this;
+        setTimeout(function () { self.root.classList.remove('is-hop'); }, 700);
+      }
+    }
+    this.scheduleHop();
+  };
+
+  // Passeggiata: ogni tanto si sposta di qualche pixel lungo il bordo.
+  CornerWidget.prototype.scheduleWalk = function () {
+    if (!cfg.walk) return;
+    var self = this;
+    var span = Math.max(0, cfg.walkMaxMs - cfg.walkMinMs);
+    var wait = cfg.walkMinMs + Math.random() * span;
+    if (this.walkTimer) clearTimeout(this.walkTimer);
+    this.walkTimer = setTimeout(function () { self.walk(); }, wait);
+  };
+
+  CornerWidget.prototype.walk = function () {
+    var blocked = document.hidden || isQuietHour() || prefersReducedMotion() ||
+                  this.root.classList.contains('is-hidden');
+    if (!blocked) {
+      var step = (Math.random() < 0.5 ? -1 : 1) * (10 + Math.round(Math.random() * 18));
+      this.walkX = clamp(this.walkX + step, -cfg.walkRange, cfg.walkRange);
+      this.root.style.setProperty('--cmp-walk', this.walkX + 'px');
+    }
+    this.scheduleWalk();
   };
 
   CornerWidget.prototype.burst = function (kind) {
@@ -960,8 +1214,8 @@
   };
 
   CornerWidget.prototype.chatter = function () {
-    // Niente battute a scheda nascosta o con widget nascosto: si riprova dopo.
-    if (document.hidden || this.root.classList.contains('is-hidden')) {
+    // Niente battute a scheda nascosta, widget nascosto o di notte.
+    if (document.hidden || this.root.classList.contains('is-hidden') || isQuietHour()) {
       this.scheduleChatter();
       return;
     }
@@ -1014,12 +1268,23 @@
       this.say(speakLine(r.creature, 'happy'), 2800);
     }
 
+    this.renderTokens(r.counted);
+    this.syncStatus();
     this.scheduleChatter();
+    this.scheduleHop();
   };
 
   CornerWidget.prototype.refresh = function () {
     this.sprite.setCreature(getCreature(state.activeId));
   };
+
+  // Crea il widget se serve e applica la scelta dell'utente sulla visibilita'.
+  function mountWidget() {
+    if (!widget) widget = new CornerWidget();
+    if (state.hidden) widget.root.classList.add('is-hidden');
+    else widget.root.classList.remove('is-hidden');
+    return widget;
+  }
 
   /* ----------------------------------------------------------
      10. LOGICA COCCOLE
@@ -1172,14 +1437,16 @@
         }
       }
       loadState();
+      preloadImages();
+      if (!started) attachStorageSync();
 
       if (cfg.autoStart) {
         if (document.readyState === 'loading') {
           document.addEventListener('DOMContentLoaded', function () {
-            Companion.showWidget();
+            mountWidget();
           });
         } else {
-          Companion.showWidget();
+          mountWidget();
         }
       }
       started = true;
@@ -1194,14 +1461,26 @@
 
     /* --- widget d'angolo --- */
 
+    /* Rimette il companion in schermata e ricorda la scelta. */
     showWidget: function () {
-      if (!widget) widget = new CornerWidget();
-      widget.root.classList.remove('is-hidden');
-      return widget;
+      state.hidden = false;
+      persist();
+      var w = mountWidget();
+      emit('companion:visibility', { hidden: false });
+      return w;
     },
 
+    /* Toglie il companion dalla schermata e ricorda la scelta:
+       resta nascosto anche ricaricando la pagina. */
     hideWidget: function () {
+      state.hidden = true;
+      persist();
       if (widget) widget.root.classList.add('is-hidden');
+      emit('companion:visibility', { hidden: true });
+    },
+
+    isHidden: function () {
+      return !!state.hidden;
     },
 
     say: function (text, ms) {
@@ -1346,6 +1625,7 @@
       clearCooldown: function () {
         state.lastCountedPetAt = null;
         persist();
+        if (widget) { widget.renderTokens(false); widget.syncStatus(); }
         return Companion.getStreak();
       },
       /* Imposta le coccole valide di oggi (0..goal). */
@@ -1354,7 +1634,9 @@
         state.dailyPets = clamp(n, 0, cfg.dailyPetGoal);
         state.lastCountedPetAt = null;
         if (state.dailyPets < cfg.dailyPetGoal) state.goalDay = null;
+        else completeDailyGoal();
         persist();
+        if (widget) { widget.renderTokens(false); widget.syncStatus(); }
         return Companion.getStreak();
       },
       /* Finge N giorni di streak chiusi ieri: la prossima giornata vale N+1. */
@@ -1366,6 +1648,7 @@
         state.petDay = todayKey();
         state.lastCountedPetAt = null;
         persist();
+        if (widget) { widget.renderTokens(false); widget.syncStatus(); }
         return Companion.getStreak();
       },
       /* Spezza la streak come se avessi saltato un giorno. */
@@ -1375,6 +1658,7 @@
         state.goalDay = null;
         state.dailyPets = 0;
         persist();
+        if (widget) { widget.renderTokens(false); widget.syncStatus(); }
         return Companion.getStreak();
       }
     },
