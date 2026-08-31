@@ -322,18 +322,10 @@
       return art;
     }
 
-    if (entry.image) {
-      var img = el('img', 'cbox-art-img');
-      img.src = entry.image;
-      img.alt = '';
-      art.appendChild(img);
-    } else {
-      var cv = el('canvas', 'cbox-art-canvas');
-      cv.width = 16 * size;
-      cv.height = 16 * size;
-      Companion.drawTo(cv.getContext('2d'), { creatureId: entry.id, scale: size });
-      art.appendChild(cv);
-    }
+    var img = el('img', 'cbox-art-img');
+    img.src = entry.image || '';
+    img.alt = '';
+    art.appendChild(img);
     return art;
   }
 
@@ -471,6 +463,23 @@
 
   var currentBox = 0;
   var holding = null;   // companion "in mano", in attesa di un posto
+  // Miniatura animata: il foglio ha i fotogrammi in fila e l'animazione CSS
+  // li alterna. Senza foglio si ripiega sulla GIF della creatura.
+  function iconFor(entry, extraClass) {
+    var box = el('div', 'cbox-icon' + (extraClass ? ' ' + extraClass : ''));
+
+    if (entry.icon) {
+      box.classList.add('is-sheet');
+      box.style.backgroundImage = 'url("' + entry.icon + '")';
+      box.style.backgroundSize = ((entry.iconFrames || 2) * 100) + '% 100%';
+    } else if (entry.image) {
+      box.style.backgroundImage = 'url("' + entry.image + '")';
+      box.style.backgroundSize = 'contain';
+    }
+    box.setAttribute('role', 'img');
+    box.setAttribute('aria-label', entry.displayName || '');
+    return box;
+  }
 
   function renderScheda(view) {
     view.innerHTML = '';
@@ -478,20 +487,57 @@
     var box = Companion.getBox(currentBox);
     var active = Companion.getActive();
 
-    // fascia della squadra
-    var party = el('div', 'cbox-party');
-    party.appendChild(el('span', 'cbox-num', 'In squadra'));
-    var pcard = el('div', 'cbox-party-card');
-    pcard.appendChild(artFor({ owned: true, id: active.id, image: active.image }, 3));
-    var pinfo = el('div');
-    pinfo.appendChild(el('b', null, active.displayName));
-    pinfo.appendChild(el('span', 'cbox-note', ' liv. ' + active.level));
-    pcard.appendChild(pinfo);
-    party.appendChild(pcard);
-    view.appendChild(party);
+    // il pannello di sinistra segue il companion scelto nella griglia
+    var scelto = null;
+    box.slots.forEach(function (s) { if (s.id && s.id === selectedId) scelto = s; });
+    if (!scelto) box.slots.forEach(function (s) { if (!scelto && s.id) scelto = s; });
 
-    // testata della scatola
+    var pc = el('div', 'cbox-pc');
+
+    /* --- colonna sinistra: la scheda di chi e' selezionato --- */
+
+    var side = el('div', 'cbox-pc-side');
+
+    var nameBar = el('div', 'cbox-pc-name');
+    nameBar.appendChild(el('span', null, scelto ? scelto.displayName : '\u2014'));
+    if (scelto && scelto.active) nameBar.appendChild(el('span', 'cbox-pc-flag', 'squadra'));
+    else if (scelto && scelto.pinned) nameBar.appendChild(el('span', 'cbox-pc-flag', 'fissato'));
+    side.appendChild(nameBar);
+
+    var portrait = el('div', 'cbox-pc-portrait');
+    if (scelto && scelto.image) {
+      var big = el('img', 'cbox-pc-sprite');
+      big.src = scelto.image;
+      big.alt = scelto.displayName;
+      portrait.appendChild(big);
+    }
+    side.appendChild(portrait);
+
+    var rows = el('div', 'cbox-pc-rows');
+
+    var lvl = el('div', 'cbox-pc-row');
+    lvl.appendChild(el('b', null, scelto ? ('Liv. ' + scelto.level) : '\u2014'));
+    rows.appendChild(lvl);
+
+    var tag = el('div', 'cbox-pc-row');
+    if (scelto) tag.appendChild(el('span', 'cbox-chip', scelto.rarity));
+    rows.appendChild(tag);
+
+    var pos = el('div', 'cbox-pc-row is-dim');
+    pos.appendChild(el('span', null, scelto
+      ? (box.name + ' \u00B7 posto ' + (scelto.slot + 1))
+      : 'nessuna selezione'));
+    rows.appendChild(pos);
+
+    side.appendChild(rows);
+    pc.appendChild(side);
+
+    /* --- colonna destra: la scatola --- */
+
+    var main = el('div', 'cbox-pc-main');
+
     var head = el('div', 'cbox-boxhead');
+
     var prev = el('button', 'cbox-arrow', '\u25C0');
     prev.type = 'button';
     prev.setAttribute('aria-label', 'Scatola precedente');
@@ -523,9 +569,8 @@
     head.appendChild(prev);
     head.appendChild(nameInput);
     head.appendChild(next);
-    view.appendChild(head);
+    main.appendChild(head);
 
-    // griglia dei posti
     var grid = el('div', 'cbox-boxgrid is-wall-' + box.wallpaper);
     grid.style.gridTemplateColumns = 'repeat(' + box.columns + ', 1fr)';
 
@@ -534,14 +579,12 @@
       cell.type = 'button';
       if (!s.id) cell.classList.add('is-empty');
       if (s.active) cell.classList.add('is-active');
+      if (s.id && s.id === selectedId) cell.classList.add('is-selected');
       if (holding && s.id === holding) cell.classList.add('is-held');
 
       if (s.id) {
-        var img = el('img', 'cbox-slot-img');
-        img.src = s.image || '';
-        img.alt = s.displayName;
-        cell.appendChild(img);
-        cell.title = s.displayName + ' · liv. ' + s.level;
+        cell.appendChild(iconFor(s));
+        cell.title = s.displayName + ' \u00B7 liv. ' + s.level;
       } else {
         cell.setAttribute('aria-label', 'Posto libero');
       }
@@ -551,42 +594,48 @@
           Companion.moveCompanion(holding, currentBox, s.slot);
           holding = null;
         } else if (s.id) {
-          holding = s.id;
-          selectedId = s.id;
+          // primo tocco: lo guardi nella scheda. secondo: lo prendi in mano.
+          if (selectedId === s.id) holding = s.id;
+          else selectedId = s.id;
         }
         render();
       });
 
       grid.appendChild(cell);
     });
-    view.appendChild(grid);
+    main.appendChild(grid);
 
-    // riga di stato e comandi
-    var footer = el('div', 'cbox-row');
-    footer.appendChild(el('span', 'cbox-note', holding
-      ? 'Hai in mano un companion: tocca un posto per lasciarlo.'
-      : (box.count + ' su ' + box.size + ' posti occupati in questa scatola.')));
-    view.appendChild(footer);
+    var stato = el('p', 'cbox-note');
+    stato.textContent = holding
+      ? 'In mano: tocca un posto per lasciarlo.'
+      : (box.count + ' su ' + box.size + ' posti occupati.');
+    main.appendChild(stato);
 
-    var tools = el('div', 'cbox-row');
+    /* --- barra dei comandi in fondo --- */
+
+    var footer = el('div', 'cbox-pc-footer');
+
+    var party = el('button', 'cbox-btn', 'Squadra: ' + active.displayName);
+    party.type = 'button';
+    party.disabled = !scelto || scelto.active;
+    party.addEventListener('click', function () {
+      if (scelto) Companion.setActive(scelto.id);
+    });
+    footer.appendChild(party);
 
     if (holding) {
-      var takeIt = el('button', 'cbox-btn', 'Portalo con te');
-      takeIt.type = 'button';
-      takeIt.addEventListener('click', function () {
-        Companion.setActive(holding);
-        holding = null;
-        render();
-      });
-      tools.appendChild(takeIt);
-
       var drop = el('button', 'cbox-btn', 'Lascialo stare');
       drop.type = 'button';
       drop.addEventListener('click', function () { holding = null; render(); });
-      tools.appendChild(drop);
+      footer.appendChild(drop);
+    } else {
+      var esci = el('button', 'cbox-btn', 'Chiudi');
+      esci.type = 'button';
+      esci.addEventListener('click', CompanionBox.close);
+      footer.appendChild(esci);
     }
 
-    tools.appendChild(el('span', 'cbox-num', 'Sfondo'));
+    main.appendChild(footer);
 
     var walls = el('div', 'cbox-walls');
     for (var w = 0; w < 6; w++) {
@@ -602,9 +651,10 @@
         walls.appendChild(swatch);
       })(w);
     }
-    tools.appendChild(walls);
+    main.appendChild(walls);
 
-    view.appendChild(tools);
+    pc.appendChild(main);
+    view.appendChild(pc);
   }
 
   function renderDiario(view) {

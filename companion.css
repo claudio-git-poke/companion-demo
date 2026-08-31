@@ -106,14 +106,6 @@
   transform-origin: 50% 100%;
 }
 
-.cmp-canvas {
-  display: block;
-  position: relative;
-  z-index: 1;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
-
 .cmp-sprite-img {
   display: block;
   position: relative;
@@ -328,7 +320,6 @@
 /* --- comparsa a sfera --- */
 
 /* Durante la comparsa la creatura resta invisibile: c'e' solo la sfera. */
-.cmp-widget.is-appearing .cmp-canvas,
 .cmp-widget.is-appearing .cmp-sprite-img {
   visibility: hidden;
 }

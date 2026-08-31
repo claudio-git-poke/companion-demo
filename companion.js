@@ -39,6 +39,42 @@
     petTokenImages: [],
     petTokenSize: 16,         // lato in px di ogni oggetto
 
+    // --- Miniature del deposito ---
+    // Ogni miniatura e' un foglio con i fotogrammi in fila (di norma due),
+    // tutti della stessa dimensione: 64x32 per due fotogrammi da 32x32.
+    // Il nome predefinito e' <id del companion> + iconSuffix, quindi
+    // bulbasaur.png. La velocita' dell'alternanza si regola in
+    // companion-box.css, nell'animazione cbox-icon2.
+    //
+    // Nello stesso repository (consigliato):
+    //   Companion.init({ iconBaseUrl: 'companion/icone/' });
+    //
+    // iconCase decide come viene scritto il nome del file a partire dall'id:
+    //   'lower'  bulbasaur.png   (predefinito)
+    //   'upper'  BULBASAUR.png
+    //   'title'  Bulbasaur.png
+    // Su GitHub Pages maiuscole e minuscole contano, quindi deve
+    // corrispondere esattamente ai file che hai caricato. L'estensione la
+    // decide iconSuffix: se anche quella e' maiuscola, usa '.PNG'.
+    //
+    // Da un altro repository, tramite jsDelivr:
+    //   Companion.init({
+    //     iconBaseUrl: 'https://cdn.jsdelivr.net/gh/nome/repo@main/icone/'
+    //   });
+    //
+    // Senza iconBaseUrl si usa la GIF idle della creatura, come prima.
+    iconBaseUrl: '',
+    iconSuffix: '.png',
+    iconCase: 'lower',
+    iconFrames: 2,
+
+    // GitHub Pages e le reti di distribuzione tengono le immagini in cache
+    // a lungo: se sostituisci un foglio lasciando lo stesso nome, per un po'
+    // si vede ancora quello vecchio. Alza questo numero a ogni aggiornamento
+    // e l'indirizzo cambia, quindi la cache viene saltata.
+    //   Companion.init({ iconBaseUrl: 'companion/icone/', iconVersion: 2 });
+    iconVersion: '',
+
     // --- Scatole del deposito ---
     // Come nel PC dei giochi: piu' scatole, ciascuna con un nome e uno
     // sfondo, e un numero fisso di posti disposti in griglia.
@@ -149,11 +185,6 @@
     idleChatterMaxMs: 420000,  // 7 min
     nudgeChance: 0.35,         // quota di battute che suggeriscono un'azione
 
-    // Umore
-    sadAfterHours: 36,        // ore senza coccole prima di intristirsi
-    sleepyStartHour: 23,      // dalle 23...
-    sleepyEndHour: 6,         // ...alle 6 il companion e' assonnato
-
     // Probabilita' di drop di una nuova creatura (usata da Companion.rollDrop())
     dropChance: 0.06,
 
@@ -161,37 +192,6 @@
     // sia il file per la posa corrente sia quello per 'idle'. Percorso relativo
     // alla pagina che carica companion.js.
     fallbackImage: 'companion/bulbasaur/idle.gif'
-  };
-
-  /* ----------------------------------------------------------
-     2. PALETTE
-     Ogni creatura usa le stesse lettere, colori diversi.
-       o = contorno   a = corpo      b = corpo scuro
-       c = pancia     d = accento    e = occhio chiaro
-       f = pupilla    g = guancia
-     ---------------------------------------------------------- */
-
-  var PALETTES = {
-    ember: {
-      o: '#3a1c14', a: '#f08a3c', b: '#c85f22', c: '#ffd9a0',
-      d: '#ffcf4d', e: '#fff6e2', f: '#3a1c14', g: '#e85c4a'
-    },
-    leaf: {
-      o: '#183321', a: '#5fbf6a', b: '#3d8c4c', c: '#dff4c4',
-      d: '#8ee06d', e: '#f4fff0', f: '#183321', g: '#e8846b'
-    },
-    drop: {
-      o: '#132a44', a: '#59b6e8', b: '#2f7cb8', c: '#d6f0ff',
-      d: '#a8e4ff', e: '#f2fbff', f: '#132a44', g: '#7fd0f0'
-    },
-    spark: {
-      o: '#3b2f0b', a: '#f7d84b', b: '#d1a71f', c: '#fff3b8',
-      d: '#fff07a', e: '#fffdf0', f: '#3b2f0b', g: '#f2894a'
-    },
-    dusk: {
-      o: '#241a38', a: '#9a7fd6', b: '#6a51a8', c: '#e4dbff',
-      d: '#cbb2ff', e: '#f7f3ff', f: '#241a38', g: '#e07fb0'
-    }
   };
 
   /* ----------------------------------------------------------
@@ -211,31 +211,6 @@
      pixel invece che con le immagini.
      ---------------------------------------------------------- */
 
-  /* ----------------------------------------------------------
-     3d. DISEGNO A CODICE (facoltativo)
-     Corpo condiviso 16x16 e tavolozze, usati solo dalle creature senza
-     spriteImages. Oggi nessuna creatura lo usa: e' il binario di scorta
-     per creature disegnate a pixel invece che animate con GIF.
-     ---------------------------------------------------------- */
-
-  var BASE_BODY = [
-    '................',
-    '................',
-    '.....oooooo.....',
-    '...oobbbbbboo...',
-    '..obbaaaaaabbo..',
-    '.obaaaaaaaaaabo.',
-    '.oaaaaaaaaaaaao.',
-    '.oaeeaaaaaaeeao.',
-    '.oaefaaaaaaefao.',
-    '.ogaaaaaaaaaago.',
-    '.oaaaaaooaaaaao.',
-    '.obaaaaaaaaaabo.',
-    '..obbccccccbbo..',
-    '...oobccccboo...',
-    '.....oooooo.....',
-    '................'
-  ];
 
   var ROSTER = [
     {
@@ -256,9 +231,7 @@
       lines: {
         idle:    ['...', 'sonnecchia al sole'],
         happy:   ['contento!', 'gli piace essere coccolato'],
-        excited: ['evviva!', 'salta di gioia!'],
-        sad:     ['si sente trascurato', 'ti aspettava'],
-        sleepy:  ['sta sonnecchiando', 'zzz...']
+        excited: ['evviva!', 'salta di gioia!']
       }
     },
     {
@@ -282,9 +255,7 @@
       lines: {
         idle:    ['...', 'il pelo si rizza da solo', 'sente un ronzio nell\'aria'],
         happy:   ['sprizza scintille corte', 'ti fa la scossa, ma piano'],
-        excited: ['parte come un fulmine!', 'e\' tutto elettrico!'],
-        sad:     ['ha il pelo giu\'', 'ti aspettava'],
-        sleepy:  ['si e\' acciambellato', 'zzz...']
+        excited: ['parte come un fulmine!', 'e\' tutto elettrico!']
       }
     }
   ];
@@ -484,6 +455,44 @@
   //   'sconosciuto' nessun dato
   function dexStatus(id) {
     return (state.owned && state.owned[id]) ? 'trovato' : 'sconosciuto';
+  }
+
+  // Miniature assegnate a mano: id -> indirizzo del foglio. Servono quando
+  // gli indirizzi non seguono uno schema fisso, per esempio con i link
+  // firmati di Supabase. Hanno la precedenza su iconBaseUrl.
+  var iconOverrides = {};
+
+  // Indirizzo del foglio della miniatura per una creatura.
+  // Una creatura puo' avere un campo icon con il nome del file o un
+  // indirizzo completo; altrimenti si usa il suo id.
+  // Come scrivere il nome del file a partire dall'id della creatura.
+  function applyIconCase(id) {
+    if (cfg.iconCase === 'upper') return id.toUpperCase();
+    if (cfg.iconCase === 'title') return id.charAt(0).toUpperCase() + id.slice(1);
+    if (cfg.iconCase === 'keep') return id;
+    return id.toLowerCase();
+  }
+
+  function iconUrl(creature) {
+    if (!creature) return null;
+
+    // Gli indirizzi passati a mano restano intatti: possono gia' contenere
+    // un token o una loro versione.
+    if (iconOverrides[creature.id]) return iconOverrides[creature.id];
+
+    var name = creature.icon || null;
+    if (name && /^(https?:)?\/\//.test(name)) return name;
+    if (!cfg.iconBaseUrl) return null;
+
+    var base = cfg.iconBaseUrl;
+    if (base.charAt(base.length - 1) !== '/') base += '/';
+
+    var url = base + (name || (applyIconCase(creature.id) + cfg.iconSuffix));
+    if (cfg.iconVersion !== '' && cfg.iconVersion !== null &&
+        cfg.iconVersion !== undefined) {
+      url += (url.indexOf('?') === -1 ? '?' : '&') + 'v=' + cfg.iconVersion;
+    }
+    return url;
   }
 
   // Nome da mostrare: il nomignolo scelto dall'utente, se c'e'.
@@ -743,25 +752,10 @@
     return lvl;
   }
 
+  // Posa di riposo. Se un giorno aggiungerai GIF per altri umori
+  // (per esempio assonnato di notte), e' qui che si decide.
   function currentMood() {
-    // sad/sleepy disattivati per ora: mancano gli sprite dedicati.
-    // Logica originale conservata sotto, pronta da riattivare quando
-    // avrai le GIF per quelle pose (basta togliere il return e il commento).
     return 'idle';
-
-    /*
-    var hour = new Date().getHours();
-    var nightly = cfg.sleepyStartHour > cfg.sleepyEndHour
-      ? (hour >= cfg.sleepyStartHour || hour < cfg.sleepyEndHour)
-      : (hour >= cfg.sleepyStartHour && hour < cfg.sleepyEndHour);
-    if (nightly) return 'sleepy';
-
-    if (state.lastPetAt) {
-      var hours = (Date.now() - state.lastPetAt) / 3600000;
-      if (hours > cfg.sadAfterHours) return 'sad';
-    }
-    return 'idle';
-    */
   }
 
   /* ----------------------------------------------------------
@@ -1024,69 +1018,6 @@
   }
 
   /* ----------------------------------------------------------
-     7. DISEGNO SPRITE
-     Compone la griglia e la disegna su canvas senza sfocature.
-     ---------------------------------------------------------- */
-
-  function buildGrid(creature, pose) {
-    var grid = BASE_BODY.slice();
-    var key;
-    for (key in creature.top) {
-      if (Object.prototype.hasOwnProperty.call(creature.top, key)) {
-        grid[Number(key)] = creature.top[key];
-      }
-    }
-    grid = grid.map(function (row) { return row.split(''); });
-
-    function set(r, c, ch) {
-      if (grid[r] && grid[r][c] !== undefined) grid[r][c] = ch;
-    }
-
-    if (pose === 'blink' || pose === 'happy') {
-      // occhi chiusi: riga di contorno al posto delle pupille
-      set(7, 3, 'a'); set(7, 4, 'a'); set(7, 11, 'a'); set(7, 12, 'a');
-      set(8, 3, 'o'); set(8, 4, 'o'); set(8, 11, 'o'); set(8, 12, 'o');
-    }
-    if (pose === 'happy' || pose === 'excited') {
-      // guance piu' accese
-      set(9, 2, 'g'); set(9, 3, 'g'); set(9, 12, 'g'); set(9, 13, 'g');
-    }
-    if (pose === 'excited') {
-      // bocca aperta
-      set(10, 7, 'o'); set(10, 8, 'o');
-      set(11, 7, 'o'); set(11, 8, 'o');
-    }
-    if (pose === 'sad') {
-      // sguardo abbassato
-      set(7, 3, 'a'); set(7, 11, 'a');
-      set(8, 3, 'e'); set(8, 4, 'f'); set(8, 11, 'e'); set(8, 12, 'f');
-      set(9, 3, 'o'); set(9, 12, 'o');
-    }
-    if (pose === 'sleepy') {
-      set(7, 3, 'a'); set(7, 4, 'a'); set(7, 11, 'a'); set(7, 12, 'a');
-      set(8, 3, 'o'); set(8, 4, 'o'); set(8, 11, 'o'); set(8, 12, 'o');
-      set(10, 7, 'o'); set(10, 8, 'o');
-    }
-
-    return grid;
-  }
-
-  function drawGrid(ctx, grid, palette, scale, offsetY) {
-    var r, c, ch, color;
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    for (r = 0; r < grid.length; r++) {
-      for (c = 0; c < grid[r].length; c++) {
-        ch = grid[r][c];
-        if (ch === '.') continue;
-        color = palette[ch];
-        if (!color) continue;
-        ctx.fillStyle = color;
-        ctx.fillRect(c * scale, (r * scale) + offsetY, scale, scale);
-      }
-    }
-  }
-
-  /* ----------------------------------------------------------
      8. SPRITE ANIMATO
      Istanza riutilizzabile: la usa il widget d'angolo e la puo'
      usare qualsiasi altra schermata (es. lo sbusto) via
@@ -1099,14 +1030,8 @@
     this.scale = options.scale || cfg.size;
     this.creature = options.creature || getCreature(state.activeId);
     this.pose = 'idle';
-    this.poseUntil = 0;
     this.poseTimer = null;
-    this.bobOffset = 0;
-    this.blinkAt = Date.now() + 1500 + Math.random() * 2500;
     this.running = false;
-    this._tickScheduled = false;
-    this.mode = null;
-    this.canvas = null;
     this.img = null;
 
     // Opzioni esplicite di montaggio (es. banco di prova): restano fisse
@@ -1119,54 +1044,33 @@
     this.start();
   }
 
-  // (Ri)crea l'elemento DOM giusto — canvas per il disegno a codice,
-  // <img> per GIF/immagini — in base alla creatura attualmente assegnata.
-  // Se il tipo richiesto e' uguale a quello gia' montato, non tocca il DOM
-  // (evita di ricreare l'elemento a ogni piccolo cambiamento).
+  // Crea il tag <img> e decide da dove prende le immagini:
+  //   'image-multi'  una GIF per posa (spriteImages)
+  //   'image'        una sola immagine fissa (spriteGif)
+  // Chi non ha ne' l'una ne' l'altra ricade su cfg.fallbackImage.
   CompanionSprite.prototype._setupElement = function () {
     var imageMap = this.explicitImageMap || (this.creature && this.creature.spriteImages) || null;
     var imageSrc = this.explicitImageSrc || (this.creature && this.creature.spriteGif) || null;
-    var nextMode = imageMap ? 'image-multi' : (imageSrc ? 'image' : 'canvas');
 
     this.imageMap = imageMap;
     this.imageSrc = imageSrc;
+    this.mode = imageMap ? 'image-multi' : 'image';
 
-    if (nextMode === this.mode) return; // stesso tipo di elemento: niente da ricreare
-
-    // tipo diverso da quello attuale (o prima creazione): via il vecchio elemento
-    var oldEl = this.mode === 'canvas' ? this.canvas : this.img;
-    if (oldEl && oldEl.parentNode) oldEl.parentNode.removeChild(oldEl);
-
-    this.mode = nextMode;
-
-    if (nextMode === 'canvas') {
-      var canvas = document.createElement('canvas');
-      canvas.width = 16 * this.scale;
-      canvas.height = 16 * this.scale + this.scale * 2; // spazio per il rimbalzo
-      canvas.className = 'cmp-canvas';
-      canvas.setAttribute('role', 'img');
-      canvas.setAttribute('aria-label', displayName(this.creature));
-      this.canvas = canvas;
-      this.img = null;
-      this.ctx = canvas.getContext('2d');
-      this.ctx.imageSmoothingEnabled = false;
-      this.host.appendChild(canvas);
-    } else {
+    if (!this.img) {
       var img = document.createElement('img');
       img.className = 'cmp-sprite-img';
       img.alt = displayName(this.creature);
       img.width = 16 * this.scale;
       img.height = 16 * this.scale;
       this.img = img;
-      this.canvas = null;
-      this.ctx = null;
       this.host.appendChild(img);
-      if (nextMode === 'image') img.src = imageSrc;
     }
+
+    if (this.mode === 'image') this.img.src = imageSrc || cfg.fallbackImage;
   };
 
-  // Applica al tag <img> il file giusto per la posa corrente (solo modalita' image-multi).
-  // Se manca sia il file della posa che quello idle, usa il fallback globale (cfg.fallbackImage).
+  // Applica al tag <img> il file giusto per la posa corrente.
+  // Se manca sia il file della posa che quello idle, usa cfg.fallbackImage.
   CompanionSprite.prototype.applyImagePose = function () {
     if (!this.imageMap) return;
     var src = this.imageMap[this.pose] || this.imageMap.idle || cfg.fallbackImage;
@@ -1178,103 +1082,43 @@
 
   CompanionSprite.prototype.setCreature = function (creature) {
     this.creature = creature;
-    this._setupElement(); // ricrea l'elemento se questa creatura richiede un tipo diverso
-
-    if (this.mode === 'image-multi') {
-      this.img.alt = displayName(creature);
-      this.applyImagePose();
-      return;
-    }
-    if (this.mode === 'image') {
-      this.img.alt = displayName(creature);
-      return;
-    }
-    this.canvas.setAttribute('aria-label', displayName(creature));
-    this.render();
-    if (this.running && !this._tickScheduled) this.tick(); // riavvia il ciclo se era fermo (arrivava da una creatura a immagine)
+    this._setupElement();
+    this.img.alt = displayName(creature);
+    this.applyImagePose();
   };
 
   CompanionSprite.prototype.setPose = function (pose, durationMs) {
     this.pose = pose;
-    this.poseUntil = durationMs ? Date.now() + durationMs : 0;
 
-    if (this.mode === 'image-multi') {
-      this.applyImagePose();
-      if (this.poseTimer) clearTimeout(this.poseTimer);
-      if (durationMs) {
-        var self = this;
-        this.poseTimer = setTimeout(function () {
-          self.setPose(currentMood(), 0);
-        }, durationMs);
-      }
-      return;
+    if (this.mode !== 'image-multi') return; // immagine fissa: nessuna posa
+    this.applyImagePose();
+
+    if (this.poseTimer) clearTimeout(this.poseTimer);
+    if (durationMs) {
+      var self = this;
+      this.poseTimer = setTimeout(function () {
+        self.setPose(currentMood(), 0);
+      }, durationMs);
     }
-
-    if (this.mode === 'image') return; // immagine singola fissa: nessuna posa da cambiare
-    this.render();
-  };
-
-  CompanionSprite.prototype.render = function () {
-    if (this.mode !== 'canvas') return;
-    var grid = buildGrid(this.creature, this.pose);
-    var palette = PALETTES[this.creature.palette];
-    drawGrid(this.ctx, grid, palette, this.scale, this.bobOffset * this.scale);
-  };
-
-  CompanionSprite.prototype.tick = function () {
-    if (!this.running || this.mode !== 'canvas') {
-      this._tickScheduled = false; // la GIF/immagine si anima da sola, niente da ridisegnare ogni frame
-      return;
-    }
-    this._tickScheduled = true;
-
-    var now = Date.now();
-
-    if (this.poseUntil && now > this.poseUntil) {
-      this.pose = currentMood() === 'idle' ? 'idle' : currentMood();
-      this.poseUntil = 0;
-    }
-
-    if (!prefersReducedMotion()) {
-      // respiro: due frame, su e giu'
-      this.bobOffset = Math.floor(now / 520) % 2 === 0 ? 0 : 1;
-
-      if (now > this.blinkAt && this.pose === 'idle') {
-        this.setPose('blink', 140);
-        this.blinkAt = now + 2200 + Math.random() * 4000;
-      }
-    } else {
-      this.bobOffset = 0;
-    }
-
-    this.render();
-    var self = this;
-    this.raf = global.requestAnimationFrame(function () { self.tick(); });
   };
 
   CompanionSprite.prototype.start = function () {
     if (this.running) return;
     this.running = true;
     this.pose = currentMood();
-    if (this.mode === 'image-multi') {
-      this.applyImagePose();
-      return;
-    }
-    if (this.mode === 'image') return;
-    this.tick();
+    this.applyImagePose();
   };
 
   CompanionSprite.prototype.stop = function () {
     this.running = false;
-    if (this.raf) global.cancelAnimationFrame(this.raf);
     if (this.poseTimer) clearTimeout(this.poseTimer);
   };
 
   CompanionSprite.prototype.destroy = function () {
     this.stop();
-    var el = (this.mode === 'image' || this.mode === 'image-multi') ? this.img : this.canvas;
-    if (el && el.parentNode) el.parentNode.removeChild(el);
+    if (this.img && this.img.parentNode) this.img.parentNode.removeChild(this.img);
   };
+
 
   /* ----------------------------------------------------------
      9. WIDGET D'ANGOLO
@@ -2089,7 +1933,8 @@
       });
     },
 
-    /* Fa reagire il companion d'angolo: 'happy' | 'excited' | 'sad' | 'sleepy' */
+    /* Fa reagire il companion d'angolo: 'happy' o 'excited', o qualsiasi
+       posa per cui la creatura abbia la GIF in spriteImages. */
     react: function (pose, ms) {
       if (widget) widget.sprite.setPose(pose, ms || 1200);
     },
@@ -2164,8 +2009,8 @@
     },
 
     /* Disegna il companion su un canvas qualsiasi: serve per la cartolina.
-       Per le creature a GIF passa un'immagine gia' caricata in options.image
-       (il percorso e' in getActive().image). */
+       Passa un'immagine gia' caricata in options.image, altrimenti usa
+       quella del widget. Il percorso e' in getActive().image. */
     drawTo: function (ctx, options) {
       options = options || {};
       var creature = getCreature(options.creatureId || state.activeId);
@@ -2177,28 +2022,15 @@
 
       ctx.imageSmoothingEnabled = false;
 
-      if (creature.spriteImages || creature.spriteGif) {
-        var img = options.image || (widget && widget.sprite && widget.sprite.img);
-        if (!img || img.complete === false) return false;
-        try {
-          ctx.drawImage(img, x, y, 16 * scale, 16 * scale);
-          return true;
-        } catch (e) {
-          return false;
-        }
-      }
+      var img = options.image || (widget && widget.sprite && widget.sprite.img);
+      if (!img || img.complete === false) return false;
 
-      var grid = buildGrid(creature, options.pose || 'idle');
-      var palette = PALETTES[creature.palette];
-      for (var r = 0; r < grid.length; r++) {
-        for (var c = 0; c < grid[r].length; c++) {
-          var color = palette[grid[r][c]];
-          if (!color) continue;
-          ctx.fillStyle = color;
-          ctx.fillRect(x + c * scale, y + r * scale, scale, scale);
-        }
+      try {
+        ctx.drawImage(img, x, y, 16 * scale, 16 * scale);
+        return true;
+      } catch (e) {
+        return false;
       }
-      return true;
     },
 
     /* Nomignolo scelto dall'utente. Stringa vuota = torna al nome originale. */
@@ -2246,9 +2078,9 @@
         nickname: rec.nickname || null,
         displayName: displayName(creature),
         image: creature.spriteImages ? (creature.spriteImages.idle || null) : null,
+        icon: iconUrl(creature),
         pinned: state.pinnedId === creature.id,
         rarity: creature.rarity,
-        palette: PALETTES[creature.palette],
         xp: rec.xp,
         pets: rec.pets,
         level: levelFor(rec.xp),
@@ -2347,6 +2179,28 @@
       return Companion.unlock(chosen.id);
     },
 
+    /* Indirizzo del foglio della miniatura, o null se non configurato. */
+    getIconUrl: function (id) {
+      return iconUrl(getCreature(id));
+    },
+
+    /* Assegna le miniature una per una, quando gli indirizzi non seguono
+       uno schema fisso (per esempio i link firmati di Supabase):
+         Companion.setIcons({ bulbasaur: 'https://.../abc.png?token=...' });
+       Passa null per un id per tornare all'indirizzo automatico. */
+    setIcons: function (map) {
+      if (!map) { iconOverrides = {}; return 0; }
+      for (var id in map) {
+        if (Object.prototype.hasOwnProperty.call(map, id)) {
+          if (map[id]) iconOverrides[id] = map[id];
+          else delete iconOverrides[id];
+        }
+      }
+      if (widget) widget.syncStatus();
+      emit('companion:icons', { count: Object.keys(iconOverrides).length });
+      return Object.keys(iconOverrides).length;
+    },
+
     /* Elenco delle scatole: nome, sfondo e quanti companion contiene. */
     getBoxes: function () {
       ensureBoxState();
@@ -2385,6 +2239,8 @@
           name: creature.name,
           displayName: displayName(creature),
           image: creature.spriteImages ? (creature.spriteImages.idle || null) : null,
+          icon: iconUrl(creature),
+          iconFrames: cfg.iconFrames,
           level: levelFor(state.owned[creature.id].xp),
           rarity: creature.rarity,
           active: state.activeId === creature.id,
@@ -2474,6 +2330,8 @@
           dex: owned ? (c.dex || null) : null,
           where: owned ? (c.where || null) : null,
           image: owned ? (c.spriteImages ? (c.spriteImages.idle || null) : null) : null,
+          icon: owned ? iconUrl(c) : null,
+          iconFrames: cfg.iconFrames,
           level: owned ? levelFor(rec.xp) : 0,
           pets: owned ? (rec.pets || 0) : 0,
           active: state.activeId === c.id,

@@ -427,7 +427,6 @@
     0 0 0 5px var(--cbox-shell-dark);
 }
 
-
 .cbox-view.is-off { display: none; }
 
 .cbox-note {
@@ -466,9 +465,7 @@
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--cbox-ink);
   background: rgba(48, 56, 64, 0.12);
-  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.28);
 }
 
 /* --- voce del catalogo --- */
@@ -476,13 +473,6 @@
 .cbox-dex {
   margin: 0 0 12px;
   padding: 10px 12px;
-  background: rgba(48, 56, 64, 0.07);
-  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.18);
-}
-
-.cbox-hint {
-  margin: 0 0 16px;
-  font-size: 12px;
 }
 
 /* --- Dex: elenco a sinistra, scheda a destra --- */
@@ -500,7 +490,6 @@
   gap: 2px;
   max-height: 260px;
   overflow: auto;
-  padding: 4px;
   background: rgba(48, 56, 64, 0.08);
   box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.22);
 }
@@ -521,8 +510,6 @@
 }
 
 .cbox-listrow.is-selected {
-  background: var(--cbox-ink);
-  color: var(--cbox-screen);
 }
 
 .cbox-listrow.is-selected .cbox-num { color: var(--cbox-screen); opacity: 0.8; }
@@ -574,30 +561,122 @@
   gap: 8px;
 }
 
-/* --- Deposito: squadra, scatole, posti --- */
+/* --- Deposito in stile PC: scheda a sinistra, scatola a destra --- */
 
-.cbox-party {
+.cbox-pc {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.cbox-pc-side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cbox-pc-name {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 8px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 9px;
+  font-size: 13px;
   color: #ffffff;
+  background: var(--cbox-teal);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
 }
+
+.cbox-pc-flag {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  color: var(--cbox-deep);
+  background: #ffffff;
+}
+
+.cbox-pc-portrait {
+  border: 12px solid transparent;
+  border-image: url("companion/dex/card.png") 12 fill stretch;
+  height: 118px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  image-rendering: pixelated;
+}
+
+.cbox-pc-sprite {
+  display: block;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.cbox-pc-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cbox-pc-row {
+  padding: 6px 9px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 0 0 2px var(--cbox-screen-dark);
+}
+
+.cbox-pc-row.is-dim { color: var(--cbox-ink-soft); font-size: 11px; }
+
+.cbox-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: var(--cbox-cyan);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.cbox-pc-main { min-width: 0; }
+
+.cbox-pc-footer {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.cbox-pc-footer .cbox-btn { flex: 1; text-align: center; }
+
+/* miniatura a piu' fotogrammi: il foglio scorre di un fotogramma alla volta */
+.cbox-icon {
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-position: 0 center;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.cbox-icon.is-sheet {
+  animation: cbox-icon2 900ms infinite;
+}
+
+@keyframes cbox-icon2 {
+  0%, 49.9%  { background-position: 0% center; }
+  50%, 100%  { background-position: 100% center; }
+}
+
+/* --- Deposito: scatole e posti --- */
 
 .cbox-party .cbox-num,
-.cbox-party .cbox-note { color: rgba(255, 255, 255, 0.85); }
 
-.cbox-party-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.cbox-party .cbox-art { height: 40px; }
 .cbox-party .cbox-art-img,
-.cbox-party .cbox-art-canvas { width: 40px; height: 40px; }
-.cbox-party .cbox-note { display: inline; margin: 0; }
 
 .cbox-boxhead {
   display: flex;
@@ -642,11 +721,10 @@
 
 .cbox-boxgrid {
   display: grid;
-  gap: 4px;
-  padding: 6px;
-  margin-bottom: 10px;
-  max-width: 360px;          /* i posti restano piccoli come nel gioco */
-  box-shadow: inset 0 0 0 3px rgba(48, 56, 64, 0.3);
+  gap: 3px;
+  padding: 4px;
+  margin-bottom: 8px;
+  max-width: 100%;
 }
 
 .cbox-slot {
@@ -665,18 +743,10 @@
   background: rgba(0, 0, 0, 0.12);
   box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22);
 }
-.cbox-slot.is-active { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
+.cbox-slot.is-active { box-shadow: inset 0 0 0 3px var(--cbox-cyan); }
+.cbox-slot.is-selected { box-shadow: inset 0 0 0 3px #f82028; }
 .cbox-slot.is-held { background: var(--cbox-led-yellow); }
 .cbox-slot:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: -3px; }
-
-.cbox-slot-img {
-  display: block;
-  width: 88%;
-  height: 88%;
-  object-fit: contain;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
 
 /* sfondi delle scatole, negli azzurri della pagina dati */
 .is-wall-0 { background: var(--cbox-teal); }
@@ -730,56 +800,7 @@
 .cbox-wall.is-on { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
 .cbox-wall:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
 
-/* --- griglia del catalogo --- */
-
-.cbox-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(98px, 1fr));
-  gap: 8px;
-}
-
-.cbox-cell {
-  appearance: none;
-  border: 0;
-  font: inherit;
-  color: inherit;
-  text-align: center;
-  padding: 8px 6px 10px;
-  cursor: pointer;
-  background: rgba(48, 56, 64, 0.08);
-  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.22);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-}
-
-.cbox-cell b { font-size: 12px; }
-.cbox-cell > span:not(.cbox-num):not(.cbox-pin) { font-size: 10px; color: var(--cbox-ink-soft); }
-
-.cbox-cell.is-active {
-  background: rgba(48, 56, 64, 0.18);
-  box-shadow: inset 0 0 0 2px var(--cbox-ink);
-}
-
-.cbox-cell.is-selected { box-shadow: inset 0 0 0 3px var(--cbox-ink); }
-
 /* non ancora trovata: casella spenta, non cliccabile */
-.cbox-cell.is-sconosciuto {
-  opacity: 0.4;
-  cursor: default;
-  box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.16);
-}
-.cbox-cell:focus-visible { outline: 3px solid var(--cbox-ink); outline-offset: 2px; }
-
-.cbox-pin {
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  background: var(--cbox-cyan);
-  color: #ffffff;
-  padding: 1px 6px;
-}
 
 .cbox-art {
   height: 48px;
@@ -788,8 +809,7 @@
   justify-content: center;
 }
 
-.cbox-art-img,
-.cbox-art-canvas {
+.cbox-art-img {
   display: block;
   width: 48px;
   height: 48px;
@@ -823,8 +843,7 @@
   justify-content: center;
 }
 
-.cbox-card-art .cbox-art-img,
-.cbox-card-art .cbox-art-canvas {
+.cbox-card-art .cbox-art-img {
   width: 80px;
   height: 80px;
 }
@@ -900,8 +919,6 @@
 .cbox-stat {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  padding: 9px 10px;
   background: rgba(48, 56, 64, 0.08);
   box-shadow: inset 0 0 0 2px rgba(48, 56, 64, 0.2);
 }
@@ -999,12 +1016,20 @@
   /* su telefono elenco e scheda si impilano */
   .cbox-split { grid-template-columns: 1fr; }
   .cbox-list { max-height: 180px; }
+
+  /* nel deposito la scheda va sopra la scatola */
+  .cbox-pc { grid-template-columns: 1fr; }
+  .cbox-pc-side { flex-direction: row; align-items: center; gap: 8px; }
+  .cbox-pc-portrait { height: 76px; width: 76px; flex: 0 0 auto; }
+  .cbox-pc-sprite { width: 56px; height: 56px; }
+  .cbox-pc-rows { flex: 1; }
 }
 
 /* --- rispetto delle preferenze di movimento --- */
 
 @media (prefers-reduced-motion: reduce) {
   .cbox-lens-glint,
+  .cbox-icon.is-sheet,
   .cbox-led { animation: none; }
 
   .cbox-tab,
@@ -1027,15 +1052,6 @@
   color: #ffffff;
   box-shadow: none;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
-}
-
-/* pannello turchese con bordo scuro */
-.cbox-party {
-  border: 16px solid transparent;
-  border-image: url("companion/dex/frame.png") 16 fill stretch;
-  background: none;
-  box-shadow: none;
-  image-rendering: pixelated;
 }
 
 /* La griglia usa la stessa cornice ma senza riempimento: al centro
@@ -1073,7 +1089,7 @@
 .cbox-stat b { font-size: 12px; }
 
 .cbox-list { padding: 2px; }
-.cbox-slot { border-width: 10px; }
+.cbox-slot { border-width: 8px; }
 
 /* l'immagine nella scheda sta anch'essa su una scheda bianca */
 .cbox-card-art {
