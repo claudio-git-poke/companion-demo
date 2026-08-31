@@ -191,6 +191,14 @@ Tutte facoltative. Si passano insieme: `Companion.init({ size: 5, walk: false })
 | `preloadImages` | `true` | Scarica in anticipo GIF e oggetti |
 | `petTokenImages` | `[]` | Oggetti che si accumulano a ogni coccola valida |
 | `petTokenSize` | `16` | Lato in pixel di ogni oggetto |
+| `emotes` | `true` | Nuvolette di reazione sopra il companion |
+| `emoteBaseUrl` | `'companion/emote/'` | Cartella delle strisce |
+| `emoteSuffix` | `'.png'` | Estensione dei file |
+| `emoteScale` | `2` | Scala: 2 disegna la nuvoletta a 64×72 |
+| `emoteMs` | `1600` | Quanto resta a schermo |
+| `emoteFrameMs` | `260` | Durata di ogni fotogramma |
+| `emoteFrames` | 11 nomi | Quanti fotogrammi ha ogni striscia |
+| `emoteFor` | vedi §9 | Quale nuvoletta per quale momento |
 | `ballImage` | `null` | Sostituisce il disegno della sfera nella comparsa |
 | `appearOnFirstRun` | `true` | Il primo companion arriva dentro la sfera |
 | `iconBaseUrl` | `''` | Cartella delle miniature del deposito (vedi §10) |
@@ -240,6 +248,7 @@ Tutte facoltative. Si passano insieme: `Companion.init({ size: 5, walk: false })
 | `isHidden()` | `true` se l'utente lo ha tolto |
 | `say(testo, ms)` | Gli fa dire una frase |
 | `react(posa, ms)` | Gli fa fare una posa: `'happy'`, `'excited'`, o qualsiasi posa per cui esista la GIF |
+| `emote(nome, ms)` | Mostra una nuvoletta di reazione sopra di lui (vedi §9) |
 | `appear({ creatureId, onDone })` | Rigioca la comparsa a sfera |
 | `mount(elemento, { scale, creatureId })` | Lo disegna dentro un altro elemento. Ritorna un oggetto con `setPose()` e `destroy()` |
 | `drawTo(ctx, { x, y, scale, image })` | Lo disegna su un canvas: serve per la cartolina |
@@ -349,6 +358,7 @@ document.addEventListener('companion:reward', function (e) {
 | `companion:synced` | `{ activeId, dailyPets, streak }` — altra scheda o altro dispositivo |
 | `companion:appeared` | `{ id }` — finita la comparsa a sfera |
 | `companion:icons` | `{ count }` |
+| `companion:emote` | `{ name }` — nuvoletta mostrata |
 
 ---
 
@@ -434,6 +444,30 @@ animazione `cbox-icon2`.
 
 **Oggetti della giornata.** `petTokenImages` accetta i percorsi di immagini
 quadrate, una per coccola valida. Lista vuota: non compare niente.
+
+**Nuvolette di reazione.** In `companion/emote/`: una striscia per nuvoletta,
+con i fotogrammi in fila in celle da 32×36. Ce ne sono undici: `heart`,
+`sparkle`, `happy`, `joy`, `grumpy`, `sleepy`, `music`, `dots`, `question`,
+`exclaim`, `bubble`.
+
+Compaiono da sole nei momenti giusti, secondo `emoteFor`:
+
+| Momento | Nuvoletta |
+|---|---|
+| Coccola valida | `heart` |
+| Coccola durante la ricarica | `sleepy` |
+| Giornata completata o traguardo | `music` |
+| Salita di livello | `sparkle` |
+| Creatura nuova | `sparkle` |
+| Richiamo (c'e' una coccola da fare) | `exclaim` |
+| Suggerimento | `question` |
+| Battuta spontanea | `dots` |
+| Rientro dopo un'assenza | `joy` |
+
+Per cambiare un abbinamento basta riscrivere quella riga in `emoteFor`;
+mettendo `null` quella nuvoletta non compare piu'. Per mostrarne una a mano:
+`Companion.emote('grumpy')`. Le nuvolette sono per le reazioni rapide: le
+frasi lunghe restano nel riquadro di dialogo.
 
 **Grafica del box.** In `companion/dex/`: `frame.png`, `card.png`,
 `heading.png`, `messagebox.png`, `cursor.png`. Sono cornici a nove parti, si
