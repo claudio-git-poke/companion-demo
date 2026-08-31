@@ -213,6 +213,7 @@
     <button class="act" data-do="unlock-jolteon">Sblocca jolteon (prova)</button>
     <button class="act" data-do="excited">Fallo esultare</button>
     <button class="act" data-do="say">Fagli dire qualcosa</button>
+    <button class="act" data-do="emote">Prova le nuvolette</button>
     <button class="act" data-do="reset">Azzera tutto</button>
   </section>
 
@@ -373,7 +374,8 @@
    'streak', 'streakbroken', 'bonus', 'visibility', 'synced',
    'renamed', 'appeared', 'milestone', 'token', 'recovered',
    'welcomeback', 'reminder', 'nudge', 'nudgeaction',
-   'dayCompanion', 'pinned', 'pruned', 'box', 'moved', 'icons'].forEach(function (name) {
+   'dayCompanion', 'pinned', 'pruned', 'box', 'moved', 'icons',
+   'emote'].forEach(function (name) {
     document.addEventListener('companion:' + name, function (e) {
       log('companion:' + name + '  ' + JSON.stringify(e.detail));
       refresh();
@@ -494,6 +496,13 @@
     if (act === 'unlock-jolteon') {
       var j = Companion.unlock('jolteon');
       log(j.duplicate ? 'jolteon gia\' sbloccato' : 'jolteon sbloccato!');
+    }
+    if (act === 'emote') {
+      // le mostra tutte in fila, una ogni secondo e mezzo
+      var nomi = ['heart','sparkle','happy','joy','grumpy','sleepy','music','dots','question','exclaim'];
+      nomi.forEach(function (n, i) {
+        setTimeout(function () { Companion.emote(n, 1400); log('nuvoletta: ' + n); }, i * 1500);
+      });
     }
     if (act === 'excited') Companion.react('excited', 1600);
     if (act === 'say') Companion.say('Pronto per la bustina!', 2600);

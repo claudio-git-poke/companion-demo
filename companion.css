@@ -445,6 +445,42 @@
   100% { opacity: 0; }
 }
 
+/* --- nuvolette di reazione --- */
+
+.cmp-emote {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  margin: 0 0 4px -16px;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  animation-timing-function: steps(1, end);
+  transform-origin: 50% 100%;
+}
+
+/* piccolo scatto di comparsa, poi i fotogrammi girano */
+.cmp-emote::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+@keyframes cmp-emote-frames {
+  from { background-position-x: 0; }
+  to   { background-position-x: calc(-1 * var(--cmp-emote-span)); }
+}
+
+/* negli angoli in alto la nuvoletta va sotto, non sopra */
+.cmp-top-right .cmp-emote,
+.cmp-top-left .cmp-emote {
+  bottom: auto;
+  top: 100%;
+  margin: 4px 0 0 -16px;
+}
+
 /* --- particelle --- */
 
 .cmp-fx {
@@ -517,6 +553,7 @@
   .cmp-widget.is-hop .cmp-shadow,
   .cmp-widget.is-done .cmp-stage,
   .cmp-widget.is-revealed .cmp-stage,
+  .cmp-emote,
   .cmp-ball,
   .cmp-token.is-new { animation: none; }
 

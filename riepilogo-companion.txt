@@ -18,6 +18,7 @@ Repository "companion-demo":
   companion/bulbasaur/    idle.gif, happy.gif
   companion/jolteon/      DA CARICARE: idle.gif, happy.gif
   companion/dex/          grafica del box + CREDITI.txt
+  companion/emote/        11 nuvolette di reazione (strisce 32x36) + CREDITI.txt
   companion/icone/        DA CARICARE: fogli 64x32 delle miniature del deposito
   spritesheet-to-companion-gifs.html   strumento spritesheet -> GIF
   movimenti_esempio.csv
@@ -63,6 +64,10 @@ COMPORTAMENTO DEL COMPANION
 - Particelle diverse per evento: cuori, stelline, polvere, coriandoli,
   lampo a schermo intero per i leggendari.
 - Nomignolo personalizzabile.
+- Nuvolette di reazione sopra il companion (cuore, note, punto esclamativo,
+  punto interrogativo, puntini, faccine): ricavate dai fogli forniti
+  dall'utente e agganciate agli eventi. Servono a dare espressivita' a
+  creature che hanno solo due pose. Le frasi lunghe restano nel riquadro.
 - Oggetti che si accumulano a ogni coccola (immagini da fornire).
 
 IL BOX (companion-box.js)

@@ -114,6 +114,35 @@
     // --- Storico ---
     historyMaxDays: 180,      // giorni completati tenuti in memoria
 
+    // --- Nuvolette di reazione ---
+    // Piccole nuvolette che compaiono sopra il companion per un attimo.
+    // Ogni file e' una striscia con i fotogrammi in fila, celle da 32x36.
+    // I nomi sono quelli di emoteFrames: per aggiungerne una, metti il file
+    // in emoteBaseUrl e la sua riga qui sotto.
+    emotes: true,
+    emoteBaseUrl: 'companion/emote/',
+    emoteSuffix: '.png',
+    emoteScale: 2,            // 2 = nuvoletta disegnata a 64x72
+    emoteMs: 1600,            // quanto resta a schermo
+    emoteFrameMs: 260,        // durata di ogni fotogramma
+    emoteFrames: {
+      heart: 2, sparkle: 2, happy: 2, joy: 2, grumpy: 2,
+      sleepy: 2, music: 2, dots: 3, question: 4, exclaim: 4, bubble: 1
+    },
+
+    // Quale nuvoletta per quale momento. Metti null per spegnerne una.
+    emoteFor: {
+      pet: 'heart',           // coccola valida
+      cooling: 'sleepy',      // coccola durante la ricarica
+      goal: 'music',          // giornata completata
+      levelup: 'sparkle',     // salita di livello
+      unlock: 'sparkle',      // creatura nuova
+      ready: 'exclaim',       // richiamo: c'e' una coccola da fare
+      nudge: 'question',      // suggerimento
+      chatter: 'dots',        // battuta spontanea
+      welcome: 'joy'          // rientro dopo un'assenza
+    },
+
     // --- Comparsa a sfera ---
     // La sfera cade, rimbalza, tremola tre volte e si apre.
     // ballImage: se metti il percorso di una tua immagine, sostituisce
@@ -402,6 +431,13 @@
       }
     }
     if (cfg.fallbackImage) list.push(cfg.fallbackImage);
+    if (cfg.emotes) {
+      for (key in cfg.emoteFrames) {
+        if (Object.prototype.hasOwnProperty.call(cfg.emoteFrames, key)) {
+          list.push(cfg.emoteBaseUrl + key + cfg.emoteSuffix);
+        }
+      }
+    }
     list = list.concat(cfg.petTokenImages || []);
 
     for (i = 0; i < list.length; i++) {
@@ -1162,6 +1198,8 @@
 
     this.activeNudge = null;
     this.nudgeTimer = null;
+    this.emoteEl = null;
+    this.emoteTimer = null;
     this.reminderTimer = null;
 
     bubble.addEventListener('click', function () {
@@ -1217,6 +1255,48 @@
     }, cfg.typeSpeedMs);
   };
 
+  /* Nuvoletta di reazione: compare sopra il companion, fa girare i suoi
+     fotogrammi e sparisce. Nessun testo: e' il linguaggio veloce, mentre
+     la nuvoletta di dialogo resta per le frasi. */
+  CornerWidget.prototype.emote = function (nome, ms) {
+    if (!cfg.emotes || !nome) return;
+
+    var fotogrammi = cfg.emoteFrames[nome];
+    if (!fotogrammi) return;
+
+    var lato = 32 * cfg.emoteScale;
+    var altezza = 36 * cfg.emoteScale;
+
+    if (this.emoteTimer) clearTimeout(this.emoteTimer);
+    if (this.emoteEl && this.emoteEl.parentNode) {
+      this.emoteEl.parentNode.removeChild(this.emoteEl);
+    }
+
+    var el = document.createElement('div');
+    el.className = 'cmp-emote';
+    el.style.width = lato + 'px';
+    el.style.height = altezza + 'px';
+    el.style.backgroundImage = 'url("' + cfg.emoteBaseUrl + nome + cfg.emoteSuffix + '")';
+    el.style.backgroundSize = (lato * fotogrammi) + 'px ' + altezza + 'px';
+
+    if (!prefersReducedMotion() && fotogrammi > 1) {
+      el.style.animation = 'cmp-emote-frames ' +
+        (cfg.emoteFrameMs * fotogrammi) + 'ms steps(' + fotogrammi + ') infinite';
+      el.style.setProperty('--cmp-emote-span', (lato * fotogrammi) + 'px');
+    }
+
+    this.root.appendChild(el);
+    this.emoteEl = el;
+
+    var self = this;
+    this.emoteTimer = setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      if (self.emoteEl === el) self.emoteEl = null;
+    }, ms || cfg.emoteMs);
+
+    emit('companion:emote', { name: nome });
+  };
+
   // Suggerimento cliccabile: al tocco emette companion:nudgeaction, che il
   // tuo codice usa per portare l'utente dove serve.
   CornerWidget.prototype.sayNudge = function (nudge) {
@@ -1249,6 +1329,7 @@
     var self = this;
     setTimeout(function () {
       self.sprite.setPose('excited', 1400);
+      self.emote(cfg.emoteFor.welcome);
       self.burst('heart');
       self.say(speakLine(getCreature(state.activeId), 'welcome'), 4200);
     }, 900);
@@ -1347,6 +1428,7 @@
     if (!quiet) {
       this.syncStatus();
       if (this.root.classList.contains('is-ready')) {
+        this.emote(cfg.emoteFor.ready);
         this.root.classList.remove('is-hop');
         void this.root.offsetWidth;
         this.root.classList.add('is-hop');
@@ -1484,8 +1566,10 @@
     // e la nuvoletta diventa cliccabile.
     if (kind === 'nudge' && liveNudges.length) {
       var n = pickRandom(liveNudges);
+      this.emote(cfg.emoteFor.nudge);
       this.sayNudge(n);
     } else {
+      this.emote(kind === 'nudge' ? cfg.emoteFor.nudge : cfg.emoteFor.chatter);
       this.say(speakLine(creature, kind), 3400);
     }
     this.scheduleChatter();
@@ -1498,6 +1582,12 @@
     this.root.classList.remove('is-squash');
     void this.root.offsetWidth;
     this.root.classList.add('is-squash');
+
+    // La nuvoletta segue quello che e' appena successo.
+    if (r.milestone || r.goalJustCompleted) this.emote(cfg.emoteFor.goal);
+    else if (r.leveledUp) this.emote(cfg.emoteFor.levelup);
+    else if (r.counted) this.emote(cfg.emoteFor.pet);
+    else if (r.cooling) this.emote(cfg.emoteFor.cooling);
 
     if (r.weekly) { this.burst('confetti'); this.burst('dust'); }
     else if (r.goalJustCompleted) { this.burst('confetti'); this.burst('dust'); }
@@ -1895,6 +1985,12 @@
       if (widget) widget.sprite.setPose(pose, ms || 1200);
     },
 
+    /* Mostra una nuvoletta di reazione sopra il companion.
+       Nomi disponibili: quelli di cfg.emoteFrames. */
+    emote: function (nome, ms) {
+      if (widget) widget.emote(nome, ms);
+    },
+
     /* Rigioca la comparsa a sfera. Con creatureId fa comparire quella
        creatura (deve essere posseduta). onDone viene chiamata alla fine. */
     appear: function (options) {
@@ -2124,6 +2220,7 @@
       ensureOwned(id);
       assignSlot(id);
       persist();
+      if (widget) widget.emote(cfg.emoteFor.unlock);
       if (creature.rarity === 'leggendario') screenFlash(560);
       emit('companion:unlocked', { id: id, name: creature.name, rarity: creature.rarity });
       return { id: id, name: creature.name, duplicate: false };
