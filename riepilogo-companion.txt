@@ -45,7 +45,8 @@ COCCOLE E STREAK
 - Giornata completa: polvere 5 + 5 per giorno di streak, tetto 40.
 - Bonus al settimo giorno: 25 di polvere garantiti, 18% un oggetto,
   5% una bustina.
-- Traguardi una tantum a 3, 7, 14, 30, 100 giorni.
+- Traguardi a 3, 7, 14, 30, 100 giorni: si prendono una volta per streak,
+  e tornano disponibili se la streak si azzera e riparte (deciso).
 - Gettone di recupero: uno ogni 5 giorni, massimo 2, copre UN giorno saltato.
   Due giorni di fila azzerano comunque la streak.
 - Il giorno di gioco comincia alle 4 del mattino, non a mezzanotte.

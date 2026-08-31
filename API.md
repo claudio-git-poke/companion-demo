@@ -103,8 +103,9 @@ fino a `dustCap`. Cioe' 5 il primo giorno, 10 il secondo, fino a 40.
 `weeklyDust` (25) garantiti, piu' una probabilita' di un oggetto
 (`weeklyItemChance`, 18%) e una di una bustina (`weeklyPackChance`, 5%).
 
-**Traguardi.** A 3, 7, 14, 30 e 100 giorni arriva un premio una tantum
-(`milestones`), che si somma al bonus settimanale.
+**Traguardi.** A 3, 7, 14, 30 e 100 giorni arriva un premio (`milestones`),
+che si somma al bonus settimanale. Si prende una volta per streak: se la
+streak si azzera e riparte da capo, i traguardi tornano disponibili.
 
 **Gettoni di recupero.** Se ne guadagna uno ogni `recoveryTokenEvery`
 (5) giorni, fino a `recoveryTokenMax` (2). Se salti **un** giorno solo e hai
@@ -157,7 +158,7 @@ Tutte facoltative. Si passano insieme: `Companion.init({ size: 5, walk: false })
 | `weeklyItemChance` | `0.18` | Probabilita' di un oggetto |
 | `weeklyPackChance` | `0.05` | Probabilita' di una bustina |
 | `weeklyItemPool` | 3 oggetti | Oggetti sorteggiabili: sostituiscili con i tuoi id |
-| `milestones` | `{3:10,7:20,14:40,30:80,100:250}` | Traguardi una tantum |
+| `milestones` | `{3:10,7:20,14:40,30:80,100:250}` | Traguardi, una volta per streak |
 | `recoveryTokens` | `true` | Attiva i gettoni di recupero |
 | `recoveryTokenEvery` | `5` | Ogni quanti giorni se ne guadagna uno |
 | `recoveryTokenMax` | `2` | Quanti se ne possono tenere |
@@ -240,7 +241,7 @@ Tutte facoltative. Si passano insieme: `Companion.init({ size: 5, walk: false })
 | `say(testo, ms)` | Gli fa dire una frase |
 | `react(posa, ms)` | Gli fa fare una posa: `'happy'`, `'excited'`, o qualsiasi posa per cui esista la GIF |
 | `appear({ creatureId, onDone })` | Rigioca la comparsa a sfera |
-| `mount(elemento, { scale })` | Lo disegna dentro un altro elemento. Ritorna un oggetto con `setPose()` e `destroy()` |
+| `mount(elemento, { scale, creatureId })` | Lo disegna dentro un altro elemento. Ritorna un oggetto con `setPose()` e `destroy()` |
 | `drawTo(ctx, { x, y, scale, image })` | Lo disegna su un canvas: serve per la cartolina |
 
 ### Coccole e progressione
@@ -249,7 +250,7 @@ Tutte facoltative. Si passano insieme: `Companion.init({ size: 5, walk: false })
 |---|---|
 | `pet()` | Coccola da codice, come il click. Ritorna `getStreak()` |
 | `getStreak()` | `{ streak, goal, dailyPets, remaining, completedToday, cooling, nextPetInMs, progress, dustToday, dustIfCompleted, tokens, tokensMax, nextMilestone, daysToWeeklyBonus }` |
-| `getStats()` | `{ owned, total, pets, xp, streak, longestStreak, daysCompleted, tokens, milestones, since }` |
+| `getStats()` | `{ owned, total, pets, xp, streak, longestStreak, daysCompleted, tokens, milestones, since }`. `milestones` sono quelli presi nella streak in corso |
 | `getHistory()` | Elenco dei giorni completati, dal piu' vecchio |
 | `getCalendar(giorni)` | `[{ key, done, today }]` per gli ultimi N giorni |
 
@@ -258,7 +259,7 @@ Tutte facoltative. Si passano insieme: `Companion.init({ size: 5, walk: false })
 | Metodo | Cosa fa |
 |---|---|
 | `getActive()` | La creatura attiva: `{ id, name, nickname, displayName, image, icon, rarity, level, xp, pets, pinned, mood }` |
-| `getRoster()` | Tutte le creature con stato di possesso |
+| `getRoster()` | Tutte le creature con stato di possesso. Come `getDex()`, ma nome e rarita' restano visibili anche per quelle che non hai |
 | `getDex()` | Il catalogo: `{ number, status, owned, name, dex, where, image, icon, level, pets, unlockedAt }`. I campi restano `null` finche' non la trovi |
 | `getDexProgress()` | `{ owned, total }` |
 | `setActive(id)` | Cambia il companion attivo (deve essere posseduto) |

@@ -97,7 +97,8 @@
     recoveryTokenMax: 2,
 
     // --- Traguardi di streak ---
-    // Una tantum, in aggiunta al bonus settimanale ricorrente.
+    // In aggiunta al bonus settimanale ricorrente. Si prendono una volta
+    // per streak: se la streak si azzera e riparte, si riprendono.
     milestones: { 3: 10, 7: 20, 14: 40, 30: 80, 100: 250 },
 
     // --- Rientro dopo un'assenza ---
@@ -188,9 +189,8 @@
     // Probabilita' di drop di una nuova creatura (usata da Companion.rollDrop())
     dropChance: 0.06,
 
-    // Immagine di riserva usata quando una creatura ha una imageMap ma manca
-    // sia il file per la posa corrente sia quello per 'idle'. Percorso relativo
-    // alla pagina che carica companion.js.
+    // Immagine di riserva, usata quando manca sia il file della posa corrente
+    // sia quello di 'idle'. Percorso relativo alla pagina.
     fallbackImage: 'companion/bulbasaur/idle.gif'
   };
 
@@ -400,7 +400,6 @@
           if (Object.prototype.hasOwnProperty.call(map, key)) list.push(map[key]);
         }
       }
-      if (ROSTER[i].spriteGif) list.push(ROSTER[i].spriteGif);
     }
     if (cfg.fallbackImage) list.push(cfg.fallbackImage);
     list = list.concat(cfg.petTokenImages || []);
@@ -447,14 +446,6 @@
       ev.initCustomEvent(name, false, false, detail);
     }
     document.dispatchEvent(ev);
-  }
-
-  // Stato di una creatura nel catalogo: o ce l'hai, o e' un punto
-  // interrogativo. Nessuna via di mezzo.
-  //   'trovato'     posseduta
-  //   'sconosciuto' nessun dato
-  function dexStatus(id) {
-    return (state.owned && state.owned[id]) ? 'trovato' : 'sconosciuto';
   }
 
   // Miniature assegnate a mano: id -> indirizzo del foglio. Servono quando
@@ -613,7 +604,8 @@
       hidden: false,         // il companion e' stato tolto dalla schermata
 
       tokens: 0,             // gettoni di recupero disponibili
-      milestonesDone: [],    // traguardi di streak gia' premiati
+      milestonesDone: [],    // traguardi presi nella streak in corso
+                             // (si azzerano quando la streak riparte)
       history: [],           // giorni completati, dal piu' vecchio
       longestStreak: 0,
       totalDays: 0,          // giornate completate in tutto
@@ -796,6 +788,7 @@
         var lost = state.streak;
         state.streak = 0;
         state.streakDay = null;
+        state.milestonesDone = [];   // ricominciando si riprendono
         changed = true;
         // Ritardato di un tick: cosi' l'evento arriva anche a chi si
         // registra subito dopo Companion.init().
@@ -956,8 +949,12 @@
     if (state.goalDay === day) return null;
 
     state.goalDay = day;
-    state.streak = (state.streakDay === yesterdayKey()) ? state.streak + 1 : 1;
+    var continua = (state.streakDay === yesterdayKey());
+    state.streak = continua ? state.streak + 1 : 1;
     state.streakDay = day;
+
+    // Streak ripartita da capo: i traguardi si riprendono.
+    if (!continua) state.milestonesDone = [];
 
     var dust = dustForStreak(state.streak);
     var weekly = null;
@@ -1031,66 +1028,34 @@
     this.creature = options.creature || getCreature(state.activeId);
     this.pose = 'idle';
     this.poseTimer = null;
-    this.running = false;
-    this.img = null;
 
-    // Opzioni esplicite di montaggio (es. banco di prova): restano fisse
-    // per tutta la vita di questa istanza, a differenza di quelle lette
-    // dalla creatura, che possono cambiare quando si chiama setCreature().
-    this.explicitImageMap = options.imageMap || null;
-    this.explicitImageSrc = options.imageSrc || null;
+    this.img = document.createElement('img');
+    this.img.className = 'cmp-sprite-img';
+    this.img.width = 16 * this.scale;
+    this.img.height = 16 * this.scale;
+    host.appendChild(this.img);
 
-    this._setupElement();
-    this.start();
+    this.setCreature(this.creature);
   }
 
-  // Crea il tag <img> e decide da dove prende le immagini:
-  //   'image-multi'  una GIF per posa (spriteImages)
-  //   'image'        una sola immagine fissa (spriteGif)
-  // Chi non ha ne' l'una ne' l'altra ricade su cfg.fallbackImage.
-  CompanionSprite.prototype._setupElement = function () {
-    var imageMap = this.explicitImageMap || (this.creature && this.creature.spriteImages) || null;
-    var imageSrc = this.explicitImageSrc || (this.creature && this.creature.spriteGif) || null;
-
-    this.imageMap = imageMap;
-    this.imageSrc = imageSrc;
-    this.mode = imageMap ? 'image-multi' : 'image';
-
-    if (!this.img) {
-      var img = document.createElement('img');
-      img.className = 'cmp-sprite-img';
-      img.alt = displayName(this.creature);
-      img.width = 16 * this.scale;
-      img.height = 16 * this.scale;
-      this.img = img;
-      this.host.appendChild(img);
-    }
-
-    if (this.mode === 'image') this.img.src = imageSrc || cfg.fallbackImage;
-  };
-
-  // Applica al tag <img> il file giusto per la posa corrente.
-  // Se manca sia il file della posa che quello idle, usa cfg.fallbackImage.
+  // Sceglie il file giusto per la posa corrente. Se manca quello della posa
+  // si ricade su idle, e se manca anche quello su cfg.fallbackImage.
   CompanionSprite.prototype.applyImagePose = function () {
-    if (!this.imageMap) return;
-    var src = this.imageMap[this.pose] || this.imageMap.idle || cfg.fallbackImage;
-    var current = this.img.src || '';
-    if (src && current.indexOf(src) === -1) {
-      this.img.src = src;
-    }
+    var mappa = (this.creature && this.creature.spriteImages) || {};
+    var src = mappa[this.pose] || mappa.idle || cfg.fallbackImage;
+    var attuale = this.img.src || '';
+
+    if (src && attuale.indexOf(src) === -1) this.img.src = src;
   };
 
   CompanionSprite.prototype.setCreature = function (creature) {
     this.creature = creature;
-    this._setupElement();
     this.img.alt = displayName(creature);
     this.applyImagePose();
   };
 
   CompanionSprite.prototype.setPose = function (pose, durationMs) {
     this.pose = pose;
-
-    if (this.mode !== 'image-multi') return; // immagine fissa: nessuna posa
     this.applyImagePose();
 
     if (this.poseTimer) clearTimeout(this.poseTimer);
@@ -1102,22 +1067,11 @@
     }
   };
 
-  CompanionSprite.prototype.start = function () {
-    if (this.running) return;
-    this.running = true;
-    this.pose = currentMood();
-    this.applyImagePose();
-  };
-
-  CompanionSprite.prototype.stop = function () {
-    this.running = false;
-    if (this.poseTimer) clearTimeout(this.poseTimer);
-  };
-
   CompanionSprite.prototype.destroy = function () {
-    this.stop();
-    if (this.img && this.img.parentNode) this.img.parentNode.removeChild(this.img);
+    if (this.poseTimer) clearTimeout(this.poseTimer);
+    if (this.img.parentNode) this.img.parentNode.removeChild(this.img);
   };
+
 
 
   /* ----------------------------------------------------------
@@ -1614,11 +1568,15 @@
      ---------------------------------------------------------- */
 
   function petActive() {
-    var creature = getCreature(state.activeId);
-    var rec = ensureOwned(state.activeId);
     var now = nowMs();
 
+    // Prima il cambio giorno: puo' far ruotare il companion del giorno.
+    // Solo dopo si legge chi e' l'attivo, altrimenti la prima coccola
+    // dopo mezzanotte finirebbe a quello di ieri.
     rollDay();
+
+    var creature = getCreature(state.activeId);
+    var rec = ensureOwned(state.activeId);
 
     var result = {
       creature: creature,
@@ -1927,9 +1885,7 @@
         : getCreature(state.activeId);
       return new CompanionSprite(element, {
         scale: options.scale || cfg.size,
-        creature: creature,
-        imageSrc: options.imageSrc,
-        imageMap: options.imageMap
+        creature: creature
       });
     },
 
@@ -2122,26 +2078,33 @@
       };
     },
 
+    /* Tutte le creature con lo stato di possesso. A differenza di getDex,
+       nome e rarita' restano visibili anche per quelle che non hai:
+       serve dove vuoi mostrare l'elenco completo. */
     getRoster: function () {
-      return ROSTER.map(function (c) {
-        var owned = !!state.owned[c.id];
+      var dex = Companion.getDex();
+      return ROSTER.map(function (c, i) {
+        var voce = dex[i];
         return {
           id: c.id,
+          number: voce.number,
           name: c.name,
-          nickname: owned ? (state.owned[c.id].nickname || null) : null,
-          displayName: owned ? displayName(c) : c.name,
-          image: c.spriteImages ? (c.spriteImages.idle || null) : null,
-          status: dexStatus(c.id),
-          pinned: state.pinnedId === c.id,
-          pets: owned ? (state.owned[c.id].pets || 0) : 0,
-          unlockedAt: owned ? (state.owned[c.id].unlockedAt || null) : null,
           rarity: c.rarity,
-          owned: owned,
-          active: state.activeId === c.id,
-          level: owned ? levelFor(state.owned[c.id].xp) : 0
+          nickname: voce.nickname,
+          displayName: voce.displayName || c.name,
+          image: voce.image,
+          icon: voce.icon,
+          status: voce.status,
+          owned: voce.owned,
+          active: voce.active,
+          pinned: voce.pinned,
+          level: voce.level,
+          pets: voce.pets,
+          unlockedAt: voce.unlockedAt
         };
       });
     },
+
 
     setActive: function (id) {
       if (!getCreature(id) || !state.owned[id]) return false;
@@ -2440,6 +2403,7 @@
         state.streakDay = null;
         state.goalDay = null;
         state.dailyPets = 0;
+        state.milestonesDone = [];   // come nella rottura vera
         persist();
         if (widget) { widget.renderTokens(false); widget.syncStatus(); }
         return Companion.getStreak();

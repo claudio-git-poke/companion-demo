@@ -314,7 +314,7 @@
 
   // Disegna la creatura dentro una cella: immagine se e' tua, punto
   // interrogativo se non l'hai ancora trovata.
-  function artFor(entry, size) {
+  function artFor(entry) {
     var art = el('div', 'cbox-art');
 
     if (!entry.owned) {
@@ -383,7 +383,7 @@
 
     if (!entry || !entry.owned) {
       var vuoto = el('div', 'cbox-card');
-      vuoto.appendChild(artFor({ owned: false }, 5));
+      vuoto.appendChild(artFor({ owned: false }));
       var vi = el('div', 'cbox-card-info');
       vi.appendChild(el('span', 'cbox-num', entry ? ('N. ' + padNumber(entry.number)) : ''));
       vi.appendChild(el('h3', null, '???'));
@@ -395,7 +395,7 @@
 
     var card = el('div', 'cbox-card');
     var art = el('div', 'cbox-card-art');
-    art.appendChild(artFor(entry, 5).firstChild);
+    art.appendChild(artFor(entry).firstChild);
     card.appendChild(art);
 
     var info = el('div', 'cbox-card-info');
