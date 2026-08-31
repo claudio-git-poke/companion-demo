@@ -1,0 +1,184 @@
+RIEPILOGO — Progetto CardSync / Companion pixel art
+(aggiornato per continuare il lavoro in un'altra chat)
+
+Sostituisce il riepilogo precedente. Documentazione completa dell'API:
+API.md nel repository "companion-demo".
+
+============================================================
+FILE DEL PROGETTO
+============================================================
+
+Repository "companion-demo":
+  companion.js            libreria (2416 righe, nessuna dipendenza)
+  companion.css           stile del widget d'angolo
+  companion-box.js        il box: Dex, Deposito, Diario (facoltativo)
+  companion-box.css       stile del box
+  companion-demo.html     banco di prova con tutti i comandi
+  API.md                  guida di riferimento
+  companion/bulbasaur/    idle.gif, happy.gif
+  companion/jolteon/      DA CARICARE: idle.gif, happy.gif
+  companion/dex/          grafica del box + CREDITI.txt
+  companion/icone/        DA CARICARE: fogli 64x32 delle miniature del deposito
+  spritesheet-to-companion-gifs.html   strumento spritesheet -> GIF
+  movimenti_esempio.csv
+
+Repository "gif-frames":
+  index.html              strumento GIF -> spreadsheet dei fotogrammi
+
+============================================================
+COSA C'E' GIA' (funzionante e provato)
+============================================================
+
+CREATURE
+- Due creature vere, entrambe a GIF: Bulbasaur (N. 001, comune, assegnabile
+  come primo companion) e Jolteon (N. 002, raro, solo da drop).
+- Le cinque creature segnaposto disegnate a codice sono state eliminate,
+  insieme all'intero motore di disegno a pixel. Oggi una creatura DEVE
+  avere le proprie GIF.
+- Chi ha in memoria creature non piu' nel roster se le vede togliere al
+  caricamento, con evento companion:pruned.
+
+COCCOLE E STREAK
+- 5 coccole valide al giorno, con 45 minuti di ricarica tra una e l'altra.
+  I click durante la ricarica danno reazione e battuta ma non contano.
+- 2 punti affetto per coccola valida, tetto 10 al giorno, livelli 1..5.
+- Giornata completa: polvere 5 + 5 per giorno di streak, tetto 40.
+- Bonus al settimo giorno: 25 di polvere garantiti, 18% un oggetto,
+  5% una bustina.
+- Traguardi una tantum a 3, 7, 14, 30, 100 giorni.
+- Gettone di recupero: uno ogni 5 giorni, massimo 2, copre UN giorno saltato.
+  Due giorni di fila azzerano comunque la streak.
+- Il giorno di gioco comincia alle 4 del mattino, non a mezzanotte.
+
+COMPORTAMENTO DEL COMPANION
+- Postura che racconta lo stato: dritto se c'e' una coccola disponibile,
+  seduto in ricarica, respiro lento a giornata finita.
+- Sobbalzo di richiamo, passeggiata lungo il bordo, ombra reattiva.
+- Nuvoletta a macchina da scrivere, pool di battute condiviso piu' quelle
+  della singola creatura.
+- Silenzio dalle 22 alle 8: nessuna iniziativa.
+- Crocetta per togliere il companion dalla schermata, scelta ricordata.
+- Comparsa a sfera alla prima assegnazione (rigiocabile con appear()).
+- Particelle diverse per evento: cuori, stelline, polvere, coriandoli,
+  lampo a schermo intero per i leggendari.
+- Nomignolo personalizzabile.
+- Oggetti che si accumulano a ogni coccola (immagini da fornire).
+
+IL BOX (companion-box.js)
+- Dex: elenco numerato con pallino di registrazione + scheda dati.
+  Due soli stati: o ce l'hai, o e' un punto interrogativo. Niente
+  "avvistato": tolto apposta.
+- Deposito in stile PC: scheda del selezionato a sinistra, scatola a destra,
+  8 scatole da 30 posti su 6 colonne, nome modificabile, 6 sfondi.
+  Primo tocco guarda, secondo prende in mano, terzo posa o scambia.
+- Diario: statistiche, calendario delle ultime cinque settimane, cartolina
+  PNG scaricabile.
+- Grafica: scocca rossa stile Kanto con lente e spie, plancia comandi
+  funzionante (croce, tasto verde, dieci tasti numerati, frecce da tastiera),
+  schermo in stile pagina dati (bianco quadrettato, azzurri).
+  Le immagini in companion/dex/ derivano dal plugin per Pokemon Essentials
+  "[MUI] Pokedex Data Page" 2.0.5 di Lucidious89 (eeveeexpo.com):
+  IL CREDITO VA MANTENUTO.
+
+COMPANION DEL GIORNO
+- Con piu' di un companion, ogni giorno ne tocca uno diverso, scelto in modo
+  stabile dalla data (stesso giorno = stesso companion su ogni dispositivo).
+- pin(id) ferma la rotazione, unpin() la riattiva.
+
+GANCI PRONTI PER SUPABASE (scritti, non ancora provati)
+- configureStorage({load, save}) per salvare sul server invece che in locale.
+- configureClock({now}) per l'orologio del server: senza, spostando l'ora del
+  telefono si guadagnano streak e polvere.
+- sync() per rileggere lo stato dopo aver scaricato i dati.
+- iconBaseUrl / iconVersion / setIcons() per le miniature del deposito.
+  Le immagini pero' NON stanno su Supabase: stanno su GitHub (vedi sopra).
+  setIcons() resta per eventuali link firmati.
+- setNudges() per i suggerimenti costruiti sui dati veri dell'app.
+- 26 eventi documentati in API.md; i tre che servono davvero sono
+  companion:reward, companion:bonus, companion:unlocked.
+
+============================================================
+DA FARE SUBITO (piccole cose in sospeso)
+============================================================
+
+1. Caricare companion/jolteon/idle.gif e happy.gif. Finche' mancano, al posto
+   di Jolteon si vede Bulbasaur, perche' fallbackImage punta li'.
+2. Sostituire fallbackImage con un'immagine neutra (sagoma o punto
+   interrogativo) invece della GIF di Bulbasaur.
+3. Preparare le miniature del deposito: un foglio per creatura con due
+   fotogrammi affiancati (64x32). DECISO: si tengono su GitHub nello stesso
+   repository, in companion/icone/, con i nomi TUTTI IN MAIUSCOLO
+   (BULBASAUR.png, JOLTEON.png). Si attivano con
+     Companion.init({ iconBaseUrl: 'companion/icone/', iconCase: 'upper' });
+   Se anche l'estensione e' maiuscola, aggiungere iconSuffix: '.PNG'.
+   Quando sostituisci un foglio lasciando lo stesso nome, alza iconVersion:
+   GitHub Pages tiene le immagini in cache a lungo.
+4. Preparare le immagini degli oggetti che si accumulano (5 file quadrati).
+5. Sostituire weeklyItemPool con gli id veri degli oggetti dell'app.
+
+============================================================
+DA FARE POI, IN ORDINE CONCORDATO
+============================================================
+
+A. INNESTO IN CARDSYNC (deciso: per ultimo, ma e' il passo che sblocca tutto)
+   - montare il widget nelle schermate giuste
+   - ascoltare companion:reward per accreditare la polvere su Supabase
+   - chiamare rollDrop() alla fine dello sbusto
+   - pulsante che apre CompanionBox
+   - passare configureClock e configureStorage
+   - agganciare companion:reminder alle notifiche vere
+
+B. LIVELLI AFFETTO CON PREMI VERI (proposto, non ancora fatto)
+   Oggi il livello e' solo un numero. Idea: frasi nuove per livello, un
+   titolo mostrato nel Dex e nella cartolina, e dal livello 3 una piccola
+   percentuale di polvere in piu'.
+
+C. SUONI GENERATI DA CODICE (proposto, non ancora fatto)
+   Blip alla coccola, accordo alla giornata completa, arpeggio alla comparsa.
+   Nessun file da caricare, spenti di default.
+
+D. BARRA DI PROGRESSO nella barra di stato persistente dell'app.
+   Deciso il posto, da fare quando la barra esistera'.
+
+E. REAZIONI AGLI EVENTI DELL'APP: salto all'apertura bustina, esultanza a set
+   completato. Serve la sequenza dello sbusto vera.
+
+F. SCAMBIO TRA COMPANION. Il box c'e', manca decidere con chi si scambia:
+   un altro utente vero richiede Supabase.
+
+G. EVOLUZIONI PERSONALIZZATE (punto d del piano originale, messo da parte).
+   Ogni creatura con la propria regola: livello specifico, scambio, azioni
+   segrete. Richiede una struttura dati nuova nel roster. Da progettare sui
+   casi veri: servono almeno due regole concrete per due creature diverse.
+
+H. MISSIONI (punto e del piano originale). Modulo a parte; unlock(id)
+   funziona gia' da qualunque chiamante, quindi l'aggancio e' semplice.
+
+============================================================
+PREFERENZE UTENTE DA RISPETTARE
+============================================================
+
+- Output = file completi, mai diff/snippet/placeholder.
+- Modifiche strutturali o breaking changes -> chiedere conferma esplicita
+  prima di procedere, spiegando l'impatto.
+- Ogni risposta con codice termina con un changelog puntato dei passaggi
+  manuali da eseguire, in ordine sequenziale.
+- Utente non tecnico: spiegare l'impatto delle scelte, non solo il codice.
+- Non costruire meccaniche non richieste: se una proposta non riceve una
+  risposta esplicita, non va implementata.
+- Gli scatti dello schermo sono il modo piu' rapido per segnalare problemi
+  di grafica: chiederli quando qualcosa non torna.
+
+============================================================
+NOTE TECNICHE UTILI A CHI RIPRENDE
+============================================================
+
+- Nessuna dipendenza esterna, nessun passaggio di compilazione. Si prova
+  aprendo companion-demo.html.
+- Lo stato sta in localStorage sotto la chiave cardsync.companion.v1.
+  Aggiungere campi e' sicuro: i salvataggi vecchi vengono completati con i
+  valori predefiniti.
+- Due schede aperte insieme si riallineano da sole (evento storage).
+- Tutto rispetta la preferenza di sistema "riduci animazioni".
+- Il banco di prova ha comandi per simulare giorni, streak, gettoni,
+  assenze, promemoria e salvataggi vecchi: non serve aspettare giorni veri.
