@@ -142,7 +142,8 @@
     <div class="streak-line" id="day-line">—</div>
     <div style="margin-top:12px">
       <button class="act" data-do="box">Apri il deposito</button>
-      <button class="act" data-do="icons">Prova le miniature a due fotogrammi</button>
+      <button class="act" data-do="icons">Prova le miniature finte</button>
+      <button class="act" data-do="check-icons">Controlla le miniature vere</button>
       <button class="act" data-do="unlock-all">Sblocca tutti (per provare)</button>
       <button class="act" data-do="next-day">Fai passare un giorno</button>
       <button class="act" data-do="unpin">Torna alla rotazione</button>
@@ -252,7 +253,16 @@
 <script src="companion-box.js"></script>
 <script>
 (function () {
-  Companion.init({ corner: 'bottom-right', size: 4 });
+  // Miniature del deposito: cartella e stile dei nomi come su GitHub.
+  var OPZIONI = {
+    corner: 'bottom-right',
+    size: 4,
+    iconBaseUrl: 'companion/icone/',
+    iconCase: 'upper',        // BULBASAUR.png
+    iconSuffix: '.png'        // se i tuoi file finiscono in .PNG, cambialo qui
+  };
+
+  Companion.init(OPZIONI);
 
   var logEl = document.getElementById('log');
   var statoEl = document.getElementById('stato');
@@ -352,7 +362,10 @@
                 '<rect x="1" y="1" width="14" height="14" fill="none" stroke="#241d16" stroke-width="2"/></svg>';
       return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     });
-    Companion.init({ corner: 'bottom-right', size: 4, petTokenImages: srcs });
+    var conOggetti = {};
+    for (var k in OPZIONI) conOggetti[k] = OPZIONI[k];
+    conOggetti.petTokenImages = srcs;
+    Companion.init(conOggetti);
     refresh();
   }
 
@@ -377,6 +390,32 @@
     if (act === 'streak6') { Companion.dev.setStreak(6); log('streak a 6, chiusa ieri: completando oggi arrivi a 7'); }
     if (act === 'break') { Companion.dev.breakStreak(); log('streak spezzata'); }
     if (act === 'box') CompanionBox.open();
+    if (act === 'check-icons') {
+      // Prova a scaricare ogni miniatura e dice cosa succede.
+      Companion.setIcons(null);          // toglie eventuali finte
+      var elenco = Companion.getRoster().filter(function (c) { return c.owned; });
+      if (!elenco.length) { log('nessun companion posseduto da controllare'); return; }
+
+      log('controllo ' + elenco.length + ' miniature...');
+      elenco.forEach(function (c) {
+        var url = Companion.getIconUrl(c.id);
+        if (!url) { log('  ' + c.id + ': iconBaseUrl non impostato'); return; }
+
+        var prova = new Image();
+        prova.onload = function () {
+          log('  OK   ' + url + '  (' + prova.naturalWidth + 'x' + prova.naturalHeight + ')');
+          if (prova.naturalWidth !== prova.naturalHeight * 2) {
+            log('       attenzione: per due fotogrammi serve larghezza doppia dell\'altezza');
+          }
+          CompanionBox.refresh();
+        };
+        prova.onerror = function () {
+          log('  NON TROVATA  ' + url);
+          log('       controlla cartella, maiuscole del nome e estensione');
+        };
+        prova.src = url;
+      });
+    }
     if (act === 'icons') {
       // Due fogli finti da 64x32 (due fotogrammi da 32x32) generati al volo:
       // servono a vedere l'animazione prima di caricare i tuoi su Supabase.
