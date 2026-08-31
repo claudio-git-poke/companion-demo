@@ -1,0 +1,11 @@
+NUVOLETTE DI REAZIONE
+=====================
+
+Le strisce in questa cartella sono ricavate da tre fogli di emote forniti
+dall'utente (emo.png, emo2.png, 029-Emotion01.png): i singoli fotogrammi
+sono stati ritagliati e rimontati in fila, in celle da 32x36 pixel,
+allineati in basso e centrati.
+
+Se questi fogli provengono da una raccolta di terzi (per esempio un pacchetto
+per RPG Maker o per un fangame), il credito all'autore originale va aggiunto
+qui e mantenuto ovunque la grafica venga mostrata.
