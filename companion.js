@@ -116,31 +116,116 @@
 
     // --- Nuvolette di reazione ---
     // Piccole nuvolette che compaiono sopra il companion per un attimo.
-    // Ogni file e' una striscia con i fotogrammi in fila, celle da 32x36.
-    // I nomi sono quelli di emoteFrames: per aggiungerne una, metti il file
-    // in emoteBaseUrl e la sua riga qui sotto.
+    // Ogni file e' una striscia con i fotogrammi in fila, celle quadrate.
+    // Sono disegnate piu' grandi del necessario e rimpicciolite dal
+    // browser: a emoteSize piccolo si vedono pulite.
     emotes: true,
     emoteBaseUrl: 'companion/emote/',
     emoteSuffix: '.png',
-    emoteScale: 2,            // 2 = nuvoletta disegnata a 64x72
+    emoteSize: 42,            // lato a schermo, in pixel
     emoteMs: 1600,            // quanto resta a schermo
-    emoteFrameMs: 260,        // durata di ogni fotogramma
+    emoteFrameMs: 300,        // durata di ogni fotogramma
+    insistingAfter: 3,        // click di fila oltre i quali il companion si secca
+    // Ogni voce dice quanti fotogrammi ha la striscia. Se la nuvoletta non
+    // e' quadrata, o sta in una sottocartella, o e' pixel art da disegnare
+    // a blocchi, si scrive per esteso:
+    //   { frames: 3, file: 'pixel/dots.png', w: 32, h: 36, pixel: true }
     emoteFrames: {
-      heart: 2, sparkle: 2, happy: 2, joy: 2, grumpy: 2,
-      sleepy: 2, music: 2, dots: 3, question: 4, exclaim: 4, bubble: 1
+      // --- simboli (celle quadrate, rimpicciolite in morbido) ---
+      heart: 2, music: 2, dots: 2, question: 2, exclaim: 2,
+      zzz: 2, wave: 2, sparkle: 2, crown: 2,
+      check: 2, cross: 2, thumbdown: 2, trophy: 2, gift: 2,
+      idea: 2, money: 2, mail: 2, camera: 2,
+
+      // --- faccine pixel art, nella sottocartella pixel/ ---
+      // px-poison e' la nuvoletta dell'avvelenamento (viola con le bolle),
+      // px-tired passa da faccia piatta a occhi a X: non e' sonno, e' stanchezza.
+      'px-heart':    { frames: 2, file: 'pixel/heart.png',    w: 32, h: 36, pixel: true },
+      'px-poison':   { frames: 2, file: 'pixel/poison.png',   w: 32, h: 36, pixel: true },
+      'px-happy':    { frames: 2, file: 'pixel/happy.png',    w: 32, h: 36, pixel: true },
+      'px-joy':      { frames: 2, file: 'pixel/joy.png',      w: 32, h: 36, pixel: true },
+      'px-grumpy':   { frames: 2, file: 'pixel/grumpy.png',   w: 32, h: 36, pixel: true },
+      'px-tired':    { frames: 2, file: 'pixel/tired.png',    w: 32, h: 36, pixel: true },
+      'px-music':    { frames: 2, file: 'pixel/music.png',    w: 32, h: 36, pixel: true },
+      'px-dots':     { frames: 3, file: 'pixel/dots.png',     w: 32, h: 36, pixel: true },
+      'px-question': { frames: 4, file: 'pixel/question.png', w: 32, h: 36, pixel: true },
+      'px-exclaim':  { frames: 4, file: 'pixel/exclaim.png',  w: 32, h: 36, pixel: true },
+      'px-bubble':   { frames: 1, file: 'pixel/bubble.png',   w: 32, h: 36, pixel: true }
     },
 
-    // Quale nuvoletta per quale momento. Metti null per spegnerne una.
+    // Interi fogli di nuvolette, aggiunti in blocco. Ogni foglio ha un
+    // prefisso, una cartella e la forma comune dei suoi file: i nomi
+    // diventano <prefisso><nome>, per esempio kw-smile.
+    // Per aggiungere un foglio nuovo basta un'altra voce qui.
+    emoteSets: [
+      {
+        prefix: 'kw-',
+        folder: 'kawaii/',
+        frames: 1,
+        names: [
+      'smile', 'grin', 'blush', 'blush-smile', 'heart', 'heart-plus', 'tongue', 'tongue-hearts',
+      'love', 'love-plus', 'kiss', 'kiss-heart', 'content', 'content-open', 'laugh-plus', 'laugh',
+      'laugh-tears', 'cry', 'cry-hard', 'tear', 'sob', 'sad', 'shock-sweat', 'gasp',
+      'scream', 'question', 'question-plus', 'angry', 'angry-mark', 'rage', 'rage-fire', 'flat',
+      'unamused', 'nervous', 'annoyed', 'sick', 'sick-sweat', 'grimace', 'frustrated', 'dizzy',
+      'spiral', 'cool', 'cool-plus', 'stars', 'stars-plus', 'shy', 'shy-plus', 'flower',
+      'flower-plus', 'excited', 'excited-plus', 'wink', 'wink-plus', 'sleepy', 'sleep', 'nightcap',
+      'nightcap-plus', 'exclaim', 'exclaim-double', 'question-mark', 'question-double', 'idea', 'idea-plus', 'dots',
+      'scribble', 'sweat', 'sweat-drops', 'thumbup', 'thumbdown', 'check', 'cross', 'clap',
+      'pray', 'duck', 'sparkle', 'crown', 'trophy', 'medal', 'gift', 'gift-open',
+      'party', 'coffee', 'bubbletea', 'pizza', 'burger', 'fries', 'cake', 'cookie',
+      'onigiri', 'chicken', 'hearts-pink', 'interrobang', 'heart-pink', 'heart-broken', 'heart-mend', 'sun',
+      'cloud', 'rain', 'umbrella', 'snowman', 'snowflake', 'leaf', 'sakura', 'clover',
+      'heart-purple', 'gamepad', 'paw', 'cat', 'cat-grey', 'gg', 'brb', 'afk',
+      'home', 'sprout', 'heart-violet', 'hourglass', 'battery-low', 'battery-full', 'signal', 'wifi',
+      'no-signal', 'muted', 'heart-small'
+        ]
+      }
+    ],
+
+    // Quale nuvoletta per quale momento. Un elenco significa "una a caso".
+    // Metti null per spegnerne una.
     emoteFor: {
-      pet: 'heart',           // coccola valida
-      cooling: 'sleepy',      // coccola durante la ricarica
-      goal: 'music',          // giornata completata
-      levelup: 'sparkle',     // salita di livello
-      unlock: 'sparkle',      // creatura nuova
-      ready: 'exclaim',       // richiamo: c'e' una coccola da fare
-      nudge: 'question',      // suggerimento
-      chatter: 'dots',        // battuta spontanea
-      welcome: 'joy'          // rientro dopo un'assenza
+      // --- coccole ---
+      pet:        ['heart', 'kw-heart', 'kw-love', 'px-heart'],
+      cooling:    ['zzz', 'kw-hourglass'],       // primo click in ricarica
+      insisting:  ['px-grumpy', 'kw-unamused'],  // dal terzo click ravvicinato
+      extra:      ['px-happy', 'kw-content'],    // coccole a obiettivo gia' pieno
+      quiet:      ['px-bubble', 'kw-nightcap'],  // tocco nelle ore di silenzio
+
+      // --- premi ---
+      goal:       ['music', 'px-music', 'kw-party'],
+      milestone:  ['trophy', 'kw-trophy'],
+      bonus:      ['gift', 'kw-gift'],
+      levelup:    ['crown', 'kw-stars'],
+      unlock:     ['sparkle', 'kw-sparkle'],
+      token:      ['check', 'kw-clover'],
+      recovered:  ['kw-sweat', 'px-happy'],
+
+      // --- vita quotidiana ---
+      ready:      ['exclaim', 'px-exclaim', 'kw-exclaim'],
+      nudge:      ['idea', 'px-question', 'kw-idea'],
+      chatter:    ['dots', 'px-dots', 'kw-dots', 'kw-coffee', 'kw-pizza', 'kw-cat'],
+      welcome:    ['wave', 'kw-love'],
+      appeared:   ['px-joy', 'kw-laugh'],
+      dayCompanion: ['px-heart', 'kw-wink'],
+      streakbroken: ['px-tired', 'kw-cry'],
+      reminder:   ['mail', 'kw-hourglass'],
+      synced:     ['px-dots', 'kw-wifi'],
+
+      // --- momenti dell'app: li fai scattare tu con Companion.moment(nome) ---
+      cardNew:    ['kw-sparkle', 'sparkle'],
+      duplicate:  ['thumbdown', 'kw-unamused'],
+      scan:       ['camera', 'kw-cool'],
+      ok:         ['check', 'kw-check'],
+      fail:       ['cross', 'kw-cross'],
+      syncFail:   ['px-poison', 'kw-no-signal'],
+      setDone:    ['crown', 'kw-crown'],
+      missionDone:['kw-medal', 'trophy'],
+      valueUp:    ['money', 'kw-stars'],
+      priceDrop:  ['question', 'kw-heart-pink'],
+      newMatch:   ['mail', 'kw-exclaim'],   // il foglio kawaii non ha buste
+      queueClear: ['kw-clover', 'check']
     },
 
     // --- Comparsa a sfera ---
@@ -332,6 +417,12 @@
       'deve digerire tutto questo affetto',
       'ti guarda con gli occhi socchiusi, appagato'
     ],
+    insisting: [
+      'ti guarda fisso, senza muoversi',
+      'sospira e fa finta di dormire',
+      'ha capito, ha capito',
+      'ti volta le spalle per un attimo'
+    ],
     ready: [
       'ti fissa e non smette',
       'ti da\' un colpetto con la testa',
@@ -434,7 +525,9 @@
     if (cfg.emotes) {
       for (key in cfg.emoteFrames) {
         if (Object.prototype.hasOwnProperty.call(cfg.emoteFrames, key)) {
-          list.push(cfg.emoteBaseUrl + key + cfg.emoteSuffix);
+          var voce = cfg.emoteFrames[key];
+          list.push(cfg.emoteBaseUrl +
+            ((voce && voce.file) ? voce.file : (key + cfg.emoteSuffix)));
         }
       }
     }
@@ -488,6 +581,25 @@
   // gli indirizzi non seguono uno schema fisso, per esempio con i link
   // firmati di Supabase. Hanno la precedenza su iconBaseUrl.
   var iconOverrides = {};
+
+  // Aggiunge a emoteFrames tutte le nuvolette dei fogli elencati in
+  // emoteSets, senza doverle scrivere una per una.
+  function espandiEmoteSets() {
+    var sets = cfg.emoteSets || [];
+    for (var i = 0; i < sets.length; i++) {
+      var set = sets[i];
+      for (var j = 0; j < set.names.length; j++) {
+        var nome = set.names[j];
+        cfg.emoteFrames[set.prefix + nome] = {
+          frames: set.frames || 1,
+          file: (set.folder || '') + nome + (set.suffix || cfg.emoteSuffix),
+          w: set.w || 1,
+          h: set.h || 1,
+          pixel: !!set.pixel
+        };
+      }
+    }
+  }
 
   // Indirizzo del foglio della miniatura per una creatura.
   // Una creatura puo' avere un campo icon con il nome del file o un
@@ -763,6 +875,7 @@
       if (widget) {
         widget.refresh();
         widget.syncStatus();
+        widget.emote(cfg.emoteFor.synced);
       }
       emit('companion:synced', {
         activeId: state.activeId,
@@ -818,6 +931,7 @@
         var salvata = state.streak;
         var rimasti = state.tokens;
         setTimeout(function () {
+          if (widget) widget.emote(cfg.emoteFor.recovered);
           emit('companion:recovered', { streak: salvata, tokensLeft: rimasti });
         }, 0);
       } else {
@@ -829,6 +943,7 @@
         // Ritardato di un tick: cosi' l'evento arriva anche a chi si
         // registra subito dopo Companion.init().
         setTimeout(function () {
+          if (widget) widget.emote(cfg.emoteFor.streakbroken);
           emit('companion:streakbroken', { lost: lost });
         }, 0);
       }
@@ -948,7 +1063,10 @@
       var pinned = !!state.pinnedId;
       setTimeout(function () {
         var c = getCreature(chosen);
-        if (widget) widget.refresh();
+        if (widget) {
+          widget.refresh();
+          widget.emote(cfg.emoteFor.dayCompanion);
+        }
         emit('companion:dayCompanion', {
           id: chosen,
           name: c ? c.name : chosen,
@@ -1200,6 +1318,7 @@
     this.nudgeTimer = null;
     this.emoteEl = null;
     this.emoteTimer = null;
+    this.clickRavvicinati = 0;   // click di fila che non contano
     this.reminderTimer = null;
 
     bubble.addEventListener('click', function () {
@@ -1258,25 +1377,56 @@
   /* Nuvoletta di reazione: compare sopra il companion, fa girare i suoi
      fotogrammi e sparisce. Nessun testo: e' il linguaggio veloce, mentre
      la nuvoletta di dialogo resta per le frasi. */
+  /* Nuvoletta di reazione: compare sopra il companion, fa girare i suoi
+     fotogrammi e sparisce. Nessun testo: e' il linguaggio veloce, mentre
+     la nuvoletta di dialogo resta per le frasi.
+
+     nome puo' essere un elenco di alternative: se ne pesca una a caso.
+     Se due momenti capitano insieme, la seconda si mette in coda invece
+     di cancellare la prima. */
   CornerWidget.prototype.emote = function (nome, ms) {
     if (!cfg.emotes || !nome) return;
 
-    var fotogrammi = cfg.emoteFrames[nome];
-    if (!fotogrammi) return;
-
-    var lato = 32 * cfg.emoteScale;
-    var altezza = 36 * cfg.emoteScale;
-
-    if (this.emoteTimer) clearTimeout(this.emoteTimer);
-    if (this.emoteEl && this.emoteEl.parentNode) {
-      this.emoteEl.parentNode.removeChild(this.emoteEl);
+    // elenco di alternative: tengo solo quelle davvero disponibili
+    if (typeof nome !== 'string' && nome.length) {
+      var possibili = [];
+      for (var i = 0; i < nome.length; i++) {
+        if (cfg.emoteFrames[nome[i]]) possibili.push(nome[i]);
+      }
+      if (!possibili.length) return;
+      nome = pickRandom(possibili);
     }
+    if (!cfg.emoteFrames[nome]) return;
+
+    if (!this.emoteCoda) this.emoteCoda = [];
+
+    // una alla volta: le altre aspettano, ma non piu' di due
+    if (this.emoteEl) {
+      if (this.emoteCoda.length < 2) this.emoteCoda.push([nome, ms]);
+      return;
+    }
+    this.mostraEmote(nome, ms);
+  };
+
+  CornerWidget.prototype.mostraEmote = function (nome, ms) {
+    var scheda = cfg.emoteFrames[nome];
+    if (typeof scheda === 'number') scheda = { frames: scheda };
+
+    var fotogrammi = scheda.frames || 1;
+    var file = scheda.file || (nome + cfg.emoteSuffix);
+    var propW = scheda.w || 1;
+    var propH = scheda.h || 1;
+
+    var lato = cfg.emoteSize;
+    var altezza = Math.round(cfg.emoteSize * (propH / propW));
 
     var el = document.createElement('div');
     el.className = 'cmp-emote';
     el.style.width = lato + 'px';
     el.style.height = altezza + 'px';
-    el.style.backgroundImage = 'url("' + cfg.emoteBaseUrl + nome + cfg.emoteSuffix + '")';
+    el.style.marginLeft = (-lato / 2) + 'px';   // centrata sul companion
+    el.style.backgroundImage = 'url("' + cfg.emoteBaseUrl + file + '")';
+    if (scheda.pixel) el.classList.add('is-pixel');
     el.style.backgroundSize = (lato * fotogrammi) + 'px ' + altezza + 'px';
 
     if (!prefersReducedMotion() && fotogrammi > 1) {
@@ -1289,9 +1439,16 @@
     this.emoteEl = el;
 
     var self = this;
+    if (this.emoteTimer) clearTimeout(this.emoteTimer);
     this.emoteTimer = setTimeout(function () {
       if (el.parentNode) el.parentNode.removeChild(el);
       if (self.emoteEl === el) self.emoteEl = null;
+
+      // tocca alla prossima in coda
+      if (self.emoteCoda && self.emoteCoda.length) {
+        var prossima = self.emoteCoda.shift();
+        self.mostraEmote(prossima[0], prossima[1]);
+      }
     }, ms || cfg.emoteMs);
 
     emit('companion:emote', { name: nome });
@@ -1359,6 +1516,7 @@
       var text = info.remaining + (info.remaining === 1 ? ' coccola' : ' coccole') +
                  ' e la giornata e\' completa';
 
+      this.emote(cfg.emoteFor.reminder);
       this.say(text, 5200);
       emit('companion:reminder', {
         remaining: info.remaining,
@@ -1510,6 +1668,7 @@
 
         self.appearing = false;
         self.burst('confetti');
+        self.emote(cfg.emoteFor.appeared);
         self.say('Ciao! Sono ' + displayName(getCreature(state.activeId)), 3600);
         emit('companion:appeared', { id: state.activeId });
         if (typeof done === 'function') done();
@@ -1583,11 +1742,19 @@
     void this.root.offsetWidth;
     this.root.classList.add('is-squash');
 
-    // La nuvoletta segue quello che e' appena successo.
-    if (r.milestone || r.goalJustCompleted) this.emote(cfg.emoteFor.goal);
+    // Quante volte di fila ha cliccato senza che la coccola contasse.
+    if (r.counted) this.clickRavvicinati = 0;
+    else this.clickRavvicinati += 1;
+
+    // La nuvoletta segue quello che e' appena successo, dal piu' importante.
+    if (r.milestone || r.weekly) this.emote(cfg.emoteFor.milestone);
+    else if (r.goalJustCompleted) this.emote(cfg.emoteFor.goal);
     else if (r.leveledUp) this.emote(cfg.emoteFor.levelup);
     else if (r.counted) this.emote(cfg.emoteFor.pet);
-    else if (r.cooling) this.emote(cfg.emoteFor.cooling);
+    else if (isQuietHour()) this.emote(cfg.emoteFor.quiet);
+    else if (r.goalDone) this.emote(cfg.emoteFor.extra);
+    else if (this.clickRavvicinati >= cfg.insistingAfter) this.emote(cfg.emoteFor.insisting);
+    else this.emote(cfg.emoteFor.cooling);
 
     if (r.weekly) { this.burst('confetti'); this.burst('dust'); }
     else if (r.goalJustCompleted) { this.burst('confetti'); this.burst('dust'); }
@@ -1618,6 +1785,8 @@
       this.say('Livello affetto ' + r.level + '!', 3200);
     } else if (r.counted) {
       this.say(progress + '  ' + speakLine(r.creature, 'happy'), 3000);
+    } else if (r.cooling && this.clickRavvicinati >= cfg.insistingAfter) {
+      this.say(speakLine(r.creature, 'insisting'), 3000);
     } else if (r.cooling) {
       this.say(speakLine(r.creature, 'sated') +
                ' — prossima coccola tra ' + formatWait(r.cooldownMs), 3400);
@@ -1777,11 +1946,13 @@
       }
 
       if (result.tokenEarned) {
+        if (widget) widget.emote(cfg.emoteFor.token);
         emit('companion:token', { tokens: state.tokens, max: cfg.recoveryTokenMax });
       }
 
       if (result.weekly && (result.weekly.item || result.weekly.pack)) {
         // Oggetti e bustina extra: accreditali tu lato app.
+        if (widget) widget.emote(cfg.emoteFor.bonus);
         emit('companion:bonus', {
           week: result.weekly.week,
           streak: result.streak,
@@ -1820,6 +1991,7 @@
           cfg[key] = options[key] !== undefined ? options[key] : DEFAULTS[key];
         }
       }
+      espandiEmoteSets();
       loadState();
       preloadImages();
       if (!started) attachStorageSync();
@@ -1983,6 +2155,33 @@
        posa per cui la creatura abbia la GIF in spriteImages. */
     react: function (pose, ms) {
       if (widget) widget.sprite.setPose(pose, ms || 1200);
+    },
+
+    /* Fa scattare la nuvoletta di un momento, invece di sceglierla a mano:
+         Companion.moment('duplicate');   // doppione
+         Companion.moment('syncFail');    // sincronizzazione fallita
+       I momenti sono le voci di emoteFor: si cambiano da li' senza toccare
+       il codice dell'app. */
+    moment: function (nome) {
+      if (widget && cfg.emoteFor[nome]) widget.emote(cfg.emoteFor[nome]);
+    },
+
+    /* L'elenco dei momenti che l'app puo' far scattare. */
+    getMoments: function () {
+      var out = [];
+      for (var k in cfg.emoteFor) {
+        if (Object.prototype.hasOwnProperty.call(cfg.emoteFor, k)) out.push(k);
+      }
+      return out;
+    },
+
+    /* L'elenco dei nomi disponibili, utile per provarle tutte. */
+    getEmoteNames: function () {
+      var out = [];
+      for (var k in cfg.emoteFrames) {
+        if (Object.prototype.hasOwnProperty.call(cfg.emoteFrames, k)) out.push(k);
+      }
+      return out;
     },
 
     /* Mostra una nuvoletta di reazione sopra il companion.

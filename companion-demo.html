@@ -214,6 +214,8 @@
     <button class="act" data-do="excited">Fallo esultare</button>
     <button class="act" data-do="say">Fagli dire qualcosa</button>
     <button class="act" data-do="emote">Prova le nuvolette</button>
+    <button class="act" data-do="emote-tutte">Mostra tutte le kawaii</button>
+    <button class="act" data-do="momenti">Prova i momenti dell'app</button>
     <button class="act" data-do="reset">Azzera tutto</button>
   </section>
 
@@ -497,11 +499,31 @@
       var j = Companion.unlock('jolteon');
       log(j.duplicate ? 'jolteon gia\' sbloccato' : 'jolteon sbloccato!');
     }
+    if (act === 'momenti') {
+      var app = ['cardNew','duplicate','scan','ok','fail','syncFail','setDone',
+                 'missionDone','valueUp','priceDrop','newMatch','queueClear'];
+      app.forEach(function (m, i) {
+        setTimeout(function () { Companion.moment(m); log('momento: ' + m); }, i * 1200);
+      });
+    }
+    if (act === 'emote-tutte') {
+      // scorre l'intero foglio kawaii, una ogni 900 millisecondi
+      var set = Companion.getEmoteNames().filter(function (n) { return n.indexOf('kw-') === 0; });
+      log('scorro ' + set.length + ' nuvolette kawaii');
+      set.forEach(function (n, i) {
+        setTimeout(function () { Companion.emote(n, 800); }, i * 900);
+      });
+    }
     if (act === 'emote') {
       // le mostra tutte in fila, una ogni secondo e mezzo
-      var nomi = ['heart','sparkle','happy','joy','grumpy','sleepy','music','dots','question','exclaim'];
+      var nomi = ['kw-smile','kw-heart','kw-love','kw-laugh','kw-cry','kw-angry','kw-cool',
+                  'kw-sleep','kw-idea','kw-trophy','kw-gift','kw-party','kw-pizza','kw-cat',
+                  'heart','music','dots','question','exclaim','zzz','wave','sparkle','crown',
+                  'check','cross','thumbdown','trophy','gift','idea','money','mail','camera',
+                  'px-heart','px-poison','px-happy','px-joy','px-grumpy','px-tired',
+                  'px-music','px-dots','px-question','px-exclaim','px-bubble'];
       nomi.forEach(function (n, i) {
-        setTimeout(function () { Companion.emote(n, 1400); log('nuvoletta: ' + n); }, i * 1500);
+        setTimeout(function () { Companion.emote(n, 1100); log('nuvoletta: ' + n); }, i * 1200);
       });
     }
     if (act === 'excited') Companion.react('excited', 1600);

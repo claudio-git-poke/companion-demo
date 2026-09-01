@@ -194,10 +194,12 @@ Tutte facoltative. Si passano insieme: `Companion.init({ size: 5, walk: false })
 | `emotes` | `true` | Nuvolette di reazione sopra il companion |
 | `emoteBaseUrl` | `'companion/emote/'` | Cartella delle strisce |
 | `emoteSuffix` | `'.png'` | Estensione dei file |
-| `emoteScale` | `2` | Scala: 2 disegna la nuvoletta a 64×72 |
+| `emoteSize` | `42` | Lato della nuvoletta a schermo, in pixel |
 | `emoteMs` | `1600` | Quanto resta a schermo |
-| `emoteFrameMs` | `260` | Durata di ogni fotogramma |
-| `emoteFrames` | 11 nomi | Quanti fotogrammi ha ogni striscia |
+| `emoteFrameMs` | `300` | Durata di ogni fotogramma |
+| `insistingAfter` | `3` | Click di fila oltre i quali il companion si secca |
+| `emoteFrames` | 29 nomi | Fotogrammi e forma di ogni striscia |
+| `emoteSets` | 1 foglio | Fogli interi aggiunti in blocco (123 nuvolette `kw-`) |
 | `emoteFor` | vedi §9 | Quale nuvoletta per quale momento |
 | `ballImage` | `null` | Sostituisce il disegno della sfera nella comparsa |
 | `appearOnFirstRun` | `true` | Il primo companion arriva dentro la sfera |
@@ -248,7 +250,10 @@ Tutte facoltative. Si passano insieme: `Companion.init({ size: 5, walk: false })
 | `isHidden()` | `true` se l'utente lo ha tolto |
 | `say(testo, ms)` | Gli fa dire una frase |
 | `react(posa, ms)` | Gli fa fare una posa: `'happy'`, `'excited'`, o qualsiasi posa per cui esista la GIF |
-| `emote(nome, ms)` | Mostra una nuvoletta di reazione sopra di lui (vedi §9) |
+| `emote(nome, ms)` | Mostra una nuvoletta sopra di lui. `nome` puo' essere un elenco: ne esce una a caso |
+| `getEmoteNames()` | Tutti i nomi disponibili (152) |
+| `moment(nome)` | Fa scattare la nuvoletta di un momento dell'app |
+| `getMoments()` | L'elenco dei momenti (33) |
 | `appear({ creatureId, onDone })` | Rigioca la comparsa a sfera |
 | `mount(elemento, { scale, creatureId })` | Lo disegna dentro un altro elemento. Ritorna un oggetto con `setPose()` e `destroy()` |
 | `drawTo(ctx, { x, y, scale, image })` | Lo disegna su un canvas: serve per la cartolina |
@@ -446,28 +451,78 @@ animazione `cbox-icon2`.
 quadrate, una per coccola valida. Lista vuota: non compare niente.
 
 **Nuvolette di reazione.** In `companion/emote/`: una striscia per nuvoletta,
-con i fotogrammi in fila in celle da 32×36. Ce ne sono undici: `heart`,
-`sparkle`, `happy`, `joy`, `grumpy`, `sleepy`, `music`, `dots`, `question`,
-`exclaim`, `bubble`.
+con i due fotogrammi affiancati in celle quadrate. Sono disegnate grandi e
+rimpicciolite dal browser a `emoteSize` (42 px), quindi si vedono pulite.
 
-Compaiono da sole nei momenti giusti, secondo `emoteFor`:
+Ventuno momenti le fanno comparire da sole, secondo `emoteFor`:
 
-| Momento | Nuvoletta |
+| Momento | Nuvolette |
 |---|---|
-| Coccola valida | `heart` |
-| Coccola durante la ricarica | `sleepy` |
-| Giornata completata o traguardo | `music` |
-| Salita di livello | `sparkle` |
-| Creatura nuova | `sparkle` |
-| Richiamo (c'e' una coccola da fare) | `exclaim` |
-| Suggerimento | `question` |
-| Battuta spontanea | `dots` |
-| Rientro dopo un'assenza | `joy` |
+| Coccola valida | `heart`, `kw-heart`, `kw-love`, `px-heart` |
+| Primo click in ricarica | `zzz`, `kw-hourglass` |
+| Dal terzo click ravvicinato | `px-grumpy`, `kw-unamused` |
+| Coccole a obiettivo gia' pieno | `px-happy`, `kw-content` |
+| Tocco nelle ore di silenzio | `px-bubble`, `kw-nightcap` |
+| Giornata completata | `music`, `px-music`, `kw-party` |
+| Traguardo o bonus settimanale | `trophy`, `kw-trophy` |
+| Oggetto o bustina del bonus | `gift`, `kw-gift` |
+| Livello affetto nuovo | `crown`, `kw-stars` |
+| Creatura nuova | `sparkle`, `kw-sparkle` |
+| Gettone guadagnato | `check`, `kw-clover` |
+| Gettone speso: streak salvata | `kw-sweat`, `px-happy` |
+| Richiamo | `exclaim`, `px-exclaim`, `kw-exclaim` |
+| Suggerimento | `idea`, `px-question`, `kw-idea` |
+| Battuta spontanea | `dots`, `px-dots`, `kw-dots`, `kw-coffee`, `kw-pizza`, `kw-cat` |
+| Rientro dopo un'assenza | `wave`, `kw-love` |
+| Fine della comparsa a sfera | `px-joy`, `kw-laugh` |
+| Cambio del companion del giorno | `px-heart`, `kw-wink` |
+| Streak persa | `px-tired`, `kw-cry` |
+| Promemoria serale | `mail`, `kw-hourglass` |
+| Riallineamento da un altro dispositivo | `px-dots`, `kw-wifi` |
 
-Per cambiare un abbinamento basta riscrivere quella riga in `emoteFor`;
-mettendo `null` quella nuvoletta non compare piu'. Per mostrarne una a mano:
-`Companion.emote('grumpy')`. Le nuvolette sono per le reazioni rapide: le
-frasi lunghe restano nel riquadro di dialogo.
+### I momenti dell'app
+
+Questi non scattano da soli: li fa partire CardSync con
+`Companion.moment(nome)`. Cosi' l'app non deve sapere quale nuvoletta
+usare, e cambiare abbinamento significa toccare solo `emoteFor`.
+
+| Momento | Quando chiamarlo | Nuvolette |
+|---|---|---|
+| `cardNew` | carta nuova nell'album | `kw-sparkle`, `sparkle` |
+| `duplicate` | doppione riconosciuto | `thumbdown`, `kw-unamused` |
+| `scan` | scansione di una carta | `camera`, `kw-cool` |
+| `ok` | operazione riuscita | `check`, `kw-check` |
+| `fail` | operazione fallita | `cross`, `kw-cross` |
+| `syncFail` | sincronizzazione fallita | `px-poison`, `kw-no-signal` |
+| `setDone` | set completato | `crown`, `kw-crown` |
+| `missionDone` | missione completata | `kw-medal`, `trophy` |
+| `valueUp` | valore della collezione salito | `money`, `kw-stars` |
+| `priceDrop` | prezzo sceso sulla lista | `question`, `kw-heart-pink` |
+| `newMatch` | nuovo match di scambio | `mail`, `kw-exclaim` |
+| `queueClear` | coda da fare svuotata | `kw-clover`, `check` |
+
+```js
+Companion.moment('duplicate');
+Companion.getMoments();   // l'elenco completo
+```
+
+**Alternative casuali.** Un momento puo' avere piu' nuvolette: si scrivono
+in un elenco e ogni volta ne esce una a caso. Cosi' sono gia' impostati la
+coccola (`['heart', 'px-heart']`), la giornata completata, il richiamo, il
+suggerimento e la battuta spontanea.
+
+```js
+Companion.init({
+  emoteFor: { pet: ['heart', 'px-heart', 'px-joy'] }
+});
+```
+
+Vale anche a mano: `Companion.emote(['check', 'px-happy'])`.
+
+**Una alla volta.** Se due momenti capitano insieme, la seconda nuvoletta si
+mette in coda invece di cancellare la prima, fino a un massimo di due in
+attesa. Per cambiare un abbinamento riscrivi quella riga in `emoteFor`; con
+`null` quella nuvoletta non compare piu'.
 
 **Grafica del box.** In `companion/dex/`: `frame.png`, `card.png`,
 `heading.png`, `messagebox.png`, `cursor.png`. Sono cornici a nove parti, si

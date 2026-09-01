@@ -18,7 +18,9 @@ Repository "companion-demo":
   companion/bulbasaur/    idle.gif, happy.gif
   companion/jolteon/      DA CARICARE: idle.gif, happy.gif
   companion/dex/          grafica del box + CREDITI.txt
-  companion/emote/        11 nuvolette di reazione (strisce 32x36) + CREDITI.txt
+  companion/emote/        18 nuvolette a simboli (strisce a 2 fotogrammi)
+  companion/emote/pixel/  11 faccine pixel art del primo insieme (prefisso px-)
+  companion/emote/kawaii/ 123 nuvolette del terzo foglio (prefisso kw-)
   companion/icone/        DA CARICARE: fogli 64x32 delle miniature del deposito
   spritesheet-to-companion-gifs.html   strumento spritesheet -> GIF
   movimenti_esempio.csv
@@ -64,10 +66,29 @@ COMPORTAMENTO DEL COMPANION
 - Particelle diverse per evento: cuori, stelline, polvere, coriandoli,
   lampo a schermo intero per i leggendari.
 - Nomignolo personalizzabile.
-- Nuvolette di reazione sopra il companion (cuore, note, punto esclamativo,
-  punto interrogativo, puntini, faccine): ricavate dai fogli forniti
-  dall'utente e agganciate agli eventi. Servono a dare espressivita' a
-  creature che hanno solo due pose. Le frasi lunghe restano nel riquadro.
+- Nuvolette di reazione sopra il companion: 18 strisce a due fotogrammi
+  ritagliate dal foglio fornito dall'utente. Nove sono agganciate ai momenti
+  del companion, le altre (spunta, croce, pollice giu', regalo, dollaro,
+  busta, fotocamera, domanda) aspettano i momenti di CardSync.
+  21 momenti le fanno comparire da sole (compresi i tre nuovi: click
+  insistenti dal terzo in poi, coccole a obiettivo gia' pieno, tocco nelle
+  ore di silenzio) e 12 momenti dell'app si fanno partire con
+  Companion.moment(nome). TUTTE le nuvolette delle tre famiglie sono
+  assegnate ad almeno un momento; un momento puo' avere piu'
+  alternative fra cui si pesca a caso, e se due capitano insieme la seconda
+  si mette in coda. ATTENZIONE ai nomi: px-poison e' l'avvelenamento (viola
+  con le bolle) e px-tired e' la faccia stanca con gli occhi a X.
+  Sono disegnate grandi e rimpicciolite dal browser a 42 px: l'utente ha
+  scelto di usare i suoi ritagli anche se sgranati, mostrandoli piccoli.
+  Le 11 faccine pixel art del primo insieme NON sono state sostituite: stanno
+  in emote/pixel/ con il prefisso px- e si disegnano a blocchi. Le due
+  famiglie convivono e si possono mescolare in emoteFor.
+  Terza famiglia: 123 nuvolette kw- (espressioni, simboli, cibo, meteo, stati),
+  ritagliate da un foglio che NON aveva trasparenza vera (la scacchiera era
+  disegnata dentro) e ripulite col riempimento dai bordi. Un foglio intero si
+  aggiunge con emoteSets, senza elencare le voci una per una.
+  ATTENZIONE: i nomi delle kw- sono la lettura di Claude delle immagini, non
+  un elenco fornito: se qualcuno non torna, basta rinominare il file.
 - Oggetti che si accumulano a ogni coccola (immagini da fornire).
 
 IL BOX (companion-box.js)

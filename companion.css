@@ -451,12 +451,13 @@
   position: absolute;
   left: 50%;
   bottom: 100%;
-  margin: 0 0 4px -16px;
+  margin: 0 0 2px 0;       /* lo scarto orizzontale lo mette il JS */
   pointer-events: none;
   background-repeat: no-repeat;
   background-position: 0 0;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  /* disegnate grandi e rimpicciolite: qui serve il ridimensionamento
+     morbido, non quello a blocchi */
+  image-rendering: auto;   /* i simboli sono grandi e rimpiccioliti */
   animation-timing-function: steps(1, end);
   transform-origin: 50% 100%;
 }
@@ -466,6 +467,12 @@
   content: "";
   position: absolute;
   inset: 0;
+}
+
+/* le faccine pixel art vanno invece disegnate a blocchi */
+.cmp-emote.is-pixel {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 @keyframes cmp-emote-frames {
@@ -478,7 +485,7 @@
 .cmp-top-left .cmp-emote {
   bottom: auto;
   top: 100%;
-  margin: 4px 0 0 -16px;
+  margin: 2px 0 0 0;
 }
 
 /* --- particelle --- */

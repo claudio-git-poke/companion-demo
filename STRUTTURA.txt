@@ -1,0 +1,51 @@
+STRUTTURA DEL REPOSITORY
+========================
+
+Copia questo albero nella radice del repository. Le due cartelle segnate
+con "DA RIEMPIRE" contengono file che non passano da qui: le GIF delle
+creature e le miniature del deposito le carichi tu.
+
+  companion.js              la libreria
+  companion.css             stile del widget d'angolo
+  companion-box.js          il box: Dex, Deposito, Diario
+  companion-box.css         stile del box
+  companion-demo.html       banco di prova con tutti i comandi
+  API.md                    guida di riferimento
+  riepilogo-companion.txt   stato del progetto, per riprendere altrove
+  STRUTTURA.txt             questo file
+
+  companion/
+    bulbasaur/              DA RIEMPIRE: idle.gif, happy.gif
+    jolteon/                DA RIEMPIRE: idle.gif, happy.gif
+    icone/                  DA RIEMPIRE: miniature del deposito
+                            (BULBASAUR.png, JOLTEON.png, fogli a 2 fotogrammi)
+    dex/                    grafica del box (5 immagini) + CREDITI.txt
+    emote/                  18 nuvolette a simboli
+      pixel/                11 faccine pixel art (prefisso px-)
+      kawaii/               123 nuvolette del terzo foglio (prefisso kw-)
+
+COME SI ACCENDE
+---------------
+
+Nella pagina, in quest'ordine:
+
+  <link rel="stylesheet" href="companion.css">
+  <link rel="stylesheet" href="companion-box.css">
+  <script src="companion.js"></script>
+  <script src="companion-box.js"></script>
+  <script>
+    Companion.init({
+      iconBaseUrl: 'companion/icone/',
+      iconCase: 'upper'
+    });
+  </script>
+
+Il resto e' in API.md.
+
+CREDITI DA MANTENERE
+--------------------
+
+  companion/dex/CREDITI.txt   grafica della pagina dati (Lucidious89)
+
+Le nuvolette in emote/ derivano da fogli forniti dall'utente: se vengono da
+una raccolta di terzi, aggiungi il credito dell'autore.
